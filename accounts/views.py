@@ -16,6 +16,9 @@ from django.shortcuts import redirect, get_object_or_404
 from django.core.exceptions import ObjectDoesNotExist
 from moderation.forms import AddCertificationConfirmationForm
 from moderation.views import AddCertificationConfirmationView
+from django.db.models.functions import TruncDay
+from django.db.models import Prefetch
+from doctors.models import Doctor
 
 class RegisterClientView(CreateView):
     '''Регистрация клиента'''
@@ -85,10 +88,22 @@ def doctor_success_register_message(request):
 
 def profile(request, username):
     profile = get_object_or_404(User, username=username)
+    print()
     if profile.is_doctor:
-        print(profile.doctor.qualifications.all())
-        return render(request,'accounts/doctor_profile.html', {'profile':profile})
+        # profile = get_object_or_404(User.objects.select_related(
+        #     Prefetch('doctor', Doctor.objects.prefetch_related('visiting_time'))),
+        #     username=username)
+        calendar = profile.doctor.visiting_time.annotate(day=TruncDay('time')).values('day','id', 'time', 'is_booked')
+        calendar_dict = {}
+        for day in calendar:
+            if day['day'] in calendar_dict:
+                calendar_dict[day['day']].append({'id':day['id'],'time':day['time'], 'is_booked':day['is_booked']})
+            else:
+                calendar_dict[day['day']] = [{'time':day['time'], 'is_booked':day['is_booked']}]
+        print(calendar_dict)
+        return render(request,'accounts/doctor_profile.html', {'profile':profile, 'calendar':calendar_dict})
     else:
+        profile = get_object_or_404(User.objects.select_related('client'), username=username)
         return render(request,'accounts/client_profile.html', {'profile':profile})
 
 class UpdateDoctorProfileView(LoginRequiredMixin, UpdateView):

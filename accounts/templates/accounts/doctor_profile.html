@@ -9,6 +9,24 @@
 <span>BIO: {{ profile.doctor.bio }}</span>
 <a href="{% url 'accounts:update_doctor_profile' %}">Изменить профиль</a>
 <a href="{% url 'accounts:add_certification_confirmation' %}">Добавить квалификацию</a>
-<a href="{% url 'accounts:change_password' %}">Изменить пароль</a>
+<a href="{% url 'accounts:change_password' %}">Изменить пароль</a><br>
+<br>
+<hr>
+<br>
+<h2>Календарь</h2>
+<table style="border: solid grey 1px;">
+    <tr>
+        {% for day in calendar %}
+        <th style="border: solid grey 1px; padding:0;">day: {{ day }}</th>
+        {% endfor %}
+    </tr>
+    {% for _, time in calendar.items %}
+    <tr>
+        {% for timestamp in time %}
+        <td style="border: solid grey 1px;">{{ timestamp.time }}</td>
+        {% endfor %}
+    </tr>
+    {% endfor %}
+</table>
 
 {% endblock %}
