@@ -1,0 +1,14 @@
+{% extends 'doctors/base.html' %}
+{% load static %}
+{% block content %}
+<br>
+{% if profile.photo %}
+<img src="{{ profile.photo.url }}">
+{% endif %}
+<span>{{ profile.username }}</span>
+<span>{{ profile.username }}</span>
+<a href="{% url 'accounts:update_client_profile' %}">Изменить профиль</a>
+<a href="{% url 'accounts:change_password' %}">Изменить пароль</a>
+
+
+{% endblock %}

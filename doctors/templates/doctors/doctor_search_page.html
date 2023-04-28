@@ -1,0 +1,14 @@
+{% extends 'doctors/base.html' %}
+{% load static %}
+{% block content %}
+<form method="get">
+    {{ form.as_table }}
+    <button type="submit">Поиск</button>
+</form>
+
+{% for doctor in object_list  %}
+{{ doctor }}
+{% endfor %}
+
+
+{% endblock %}

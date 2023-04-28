@@ -1,0 +1,25 @@
+{% extends 'admin/change_form.html' %}
+{% load i18n %}
+{% load static %}
+
+{% block extrastyle %}{{ block.super }}
+<link rel="stylesheet" type="text/css" href="{% static 'moderation/admin/css/admin_style.css' %}">
+<link
+  rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/@fancyapps/ui@5.0/dist/fancybox/fancybox.css"
+/>
+{% endblock %}
+{% block admin_change_form_document_ready  %}{{ block.super }}<script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui@5.0/dist/fancybox/fancybox.umd.js"></script>
+<script>
+    Fancybox.bind('[data-fancybox="gallery"]', {
+    });
+</script>
+{% endblock %}
+
+
+{% block submit_buttons_bottom %}
+
+<a href="{% url 'moderation:confirmation' original.pk 'confirmed' %}" class="blue_button" type="button" value="Подтвердить">Подтвердить</a>
+<input class="red_button" type="button" value="Отклонить заявку">
+
+{% endblock %}
