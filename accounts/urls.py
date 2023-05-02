@@ -20,5 +20,7 @@ urlpatterns = [
         name='change_password'),
     path('add-certification-confirmation/', views.AddCertificationConfirmationView.as_view(),
          name='add_certification_confirmation'),
+    path('ban/<str:username>', views.ban_user_view, name='ban'),
+    path('unban/<str:username>', views.unban_user_view, name='unban')
 
 ]

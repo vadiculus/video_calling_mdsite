@@ -1,0 +1,15 @@
+{% extends 'doctors/base.html' %}
+{% load static %}
+{% load chat_filters %}
+{% block content %}
+
+{% if chats %}
+{% for chat in chats %}
+<a href="{% url 'chat:premium_chat' chat.id %}">{{ chat|get_interlocutor:user }}</a>
+<br>
+{% endfor %}
+{% else %}
+<h3>У вас пока что нету чатов</h3>
+{% endif %}
+
+{% endblock %}

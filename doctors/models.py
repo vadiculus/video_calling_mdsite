@@ -25,6 +25,9 @@ class Doctor(models.Model):
     def __str__(self):
         return self.user.full_name
 
+    def username(self):
+        return self.user.username
+
     class Meta:
         verbose_name = 'Доктор'
         verbose_name_plural = 'Доктора'

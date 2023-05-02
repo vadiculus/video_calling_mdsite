@@ -7,7 +7,11 @@
 </form>
 
 {% for doctor in object_list  %}
-{{ doctor }}
+{% if doctor.user.is_banned %}
+<a href="{% url 'accounts:profile' doctor.username %}">Заблокирован: {{ doctor }}</a><br>
+{% else %}
+<a href="{% url 'accounts:profile' doctor.username %}">{{ doctor }}</a><br>
+{% endif %}
 {% endfor %}
 
 

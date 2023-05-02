@@ -19,6 +19,9 @@ from moderation.views import AddCertificationConfirmationView
 from django.db.models.functions import TruncDay
 from django.db.models import Prefetch
 from doctors.models import Doctor
+from django.db import transaction
+from calendars.forms import VisitingTimeForm
+import datetime
 
 class RegisterClientView(CreateView):
     '''Регистрация клиента'''
@@ -55,19 +58,24 @@ class CertificationConfirmationView(CreateView):
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_doctor:
             raise Http404
+        if hasattr(request.user, 'doctor'):
+            return HttpResponseRedirect(reverse_lazy('accounts:update_doctor_profile'))
         return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form):
         qualifications = form.cleaned_data['qualifications']
+
         self.object = form.save(commit=False) #Модель доктора
         self.object.user = self.request.user
-        self.object.save()
-        print(self.object.qualifications.all())
-        user_cc = CertificationConfirmation.objects.create(doctor=self.object)
-        user_cc.qualifications.set(qualifications)
-        for image in self.request.FILES.getlist('certification_photos'):
-            CertificationPhoto.objects.create(certification_confirmation=user_cc, photo=image)
-
+        with transaction.atomic():
+            try:
+                self.object.save()
+            except:
+                return HttpResponseRedirect(reverse_lazy('accounts:update_doctor_profile'))
+            user_cc = CertificationConfirmation.objects.create(doctor=self.object)
+            user_cc.qualifications.set(qualifications)
+            for image in self.request.FILES.getlist('certification_photos'):
+                CertificationPhoto.objects.create(certification_confirmation=user_cc, photo=image)
         return HttpResponseRedirect(self.get_success_url())
 
 class LoginUserView(LoginView):
@@ -87,28 +95,39 @@ def doctor_success_register_message(request):
     return render(request,'accounts/doctor_success_register_message.html')
 
 def profile(request, username):
-    profile = get_object_or_404(User, username=username)
-    print()
-    if profile.is_doctor:
-        # profile = get_object_or_404(User.objects.select_related(
-        #     Prefetch('doctor', Doctor.objects.prefetch_related('visiting_time'))),
-        #     username=username)
-        calendar = profile.doctor.visiting_time.annotate(day=TruncDay('time')).values('day','id', 'time', 'is_booked')
-        calendar_dict = {}
-        for day in calendar:
-            if day['day'] in calendar_dict:
-                calendar_dict[day['day']].append({'id':day['id'],'time':day['time'], 'is_booked':day['is_booked']})
+    user = get_object_or_404(User, username=username)
+    if not user.is_banned:
+        if user.is_doctor:
+            # profile = get_object_or_404(User.objects.select_related(
+            #     Prefetch('doctor', Doctor.objects.prefetch_related('visiting_time'))),
+            #     username=username)
+            if user == request.user:
+                calendar = user.doctor.visiting_time.annotate(day=TruncDay('time'))\
+                    .values('day','id', 'time', 'is_booked')
             else:
-                calendar_dict[day['day']] = [{'time':day['time'], 'is_booked':day['is_booked']}]
-        print(calendar_dict)
-        return render(request,'accounts/doctor_profile.html', {'profile':profile, 'calendar':calendar_dict})
-    else:
-        profile = get_object_or_404(User.objects.select_related('client'), username=username)
-        return render(request,'accounts/client_profile.html', {'profile':profile})
+                calendar = user.doctor.visiting_time.annotate(day=TruncDay('time'))\
+                    .filter(is_booked=False)\
+                    .values('day', 'id', 'time', 'is_booked')
+            calendar_dict = {}
+            for day in calendar:
+                if day['day'] in calendar_dict:
+                    calendar_dict[day['day']].append({'id':day['id'], 'time':day['time'], 'is_booked':day['is_booked']})
+                else:
+                    calendar_dict[day['day']] = [{'id':day['id'], 'time':day['time'], 'is_booked':day['is_booked']}]
+            return render(request,'accounts/doctor_profile.html', {'page_user':user,
+                                                                   'calendar':calendar_dict,
+                                                                   'visiting_time_form':VisitingTimeForm()})
+        else:
+            user = get_object_or_404(User.objects.select_related('client'), username=username)
+            return render(request,'accounts/client_profile.html', {'page_user':user})
+    return render(request, 'accounts/banned_user.html', {'page_user':user})
 
 class UpdateDoctorProfileView(LoginRequiredMixin, UpdateView):
     form_class = UpdateDoctorProfileForm
     template_name = 'accounts/login.html'
+
+    def get_object(self, queryset=None):
+        return self.request.user.doctor
 
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_doctor:
@@ -130,3 +149,27 @@ class UpdateClientProfileView(LoginRequiredMixin, UpdateView):
 
     def get_success_url(self):
         return reverse_lazy('accounts:profile', kwargs={'username':self.request.user.username})
+
+def ban_user_view(request, username):
+    user = get_object_or_404(User, username=username)
+    if request.user.is_superuser:
+        if user.is_superuser:
+            title = 'Вы не имеете права блокировать администраторов'
+            return render(request, 'errors/some_error.html', {'title': title})
+        user.is_banned = True
+        user.save()
+        return redirect('accounts:profile', user.username)
+    else:
+        raise Http404
+
+def unban_user_view(request, username):
+    user = get_object_or_404(User, username=username)
+    if request.user.is_superuser:
+        if user.is_superuser:
+            title = 'Вы не можете разблокировать администратора'
+            return render(request, 'errors/some_error.html', {'title': title})
+        user.is_banned = False
+        user.save()
+        return redirect('accounts:profile', user.username)
+    else:
+        raise Http404

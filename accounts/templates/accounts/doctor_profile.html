@@ -5,28 +5,42 @@
 {% if profile.photo %}
 <img width="100px" src="{{ profile.photo.url }}">
 {% endif %}
-<span>Имя: {{ profile.username }}</span><br>
-<span>BIO: {{ profile.doctor.bio }}</span>
+<span>Имя: {{ page_user.full_name }}</span><br>
+<span>BIO: {{ page_user.doctor.bio }}</span>
+{% if user == page_user %}
 <a href="{% url 'accounts:update_doctor_profile' %}">Изменить профиль</a>
 <a href="{% url 'accounts:add_certification_confirmation' %}">Добавить квалификацию</a>
 <a href="{% url 'accounts:change_password' %}">Изменить пароль</a><br>
+{% elif user.is_superuser %}
+<a href="{% url 'chat:create_chat' page_user.username %}">Написать</a><br>
+<a href="{% url 'accounts:ban' page_user.username %}">Заблокировать</a><br>
+{% elif not user.is_doctor %}
+<a href="{% url 'chat:create_chat' page_user.username %}">Написать</a><br>
+{% endif %}
+
+{% if calendar %}
+
+{% for day, time in calendar.items %}
+day: {{ day | date:'d.m.Y' }}<br>
+{% for timestamp in time %}
+<a href="{% url 'calendars:book_call' timestamp.id %}">{{ timestamp.time | time:'H:i' }}</a>
+{% endfor %}
 <br>
-<hr>
-<br>
-<h2>Календарь</h2>
-<table style="border: solid grey 1px;">
-    <tr>
-        {% for day in calendar %}
-        <th style="border: solid grey 1px; padding:0;">day: {{ day }}</th>
-        {% endfor %}
-    </tr>
-    {% for _, time in calendar.items %}
-    <tr>
-        {% for timestamp in time %}
-        <td style="border: solid grey 1px;">{{ timestamp.time }}</td>
-        {% endfor %}
-    </tr>
-    {% endfor %}
-</table>
+{% endfor %}
+{% else %}
+{% if page_user != user %}
+У доктора пока что нету сввободного времени.
+{% else %}
+У вас нету свободного времени
+{% endif %}
+{% endif %}
+
+{% if page_user == user %}
+<form action="{% url 'calendars:create_visiting_time' %}" method="post">
+    {% csrf_token %}
+    {{ visiting_time_form.as_p }}
+    <button type="submit">Создать запись</button>
+</form>
+{% endif %}
 
 {% endblock %}

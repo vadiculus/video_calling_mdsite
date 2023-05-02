@@ -16,8 +16,12 @@ class DoctorSearchView(ListView):
         qualifications = self.request.GET.get('qualifications') if self.request.GET.get('qualifications') else []
         if not (rating or qualifications):
             return []
-        queryset = Doctor.objects.filter(Q(rating=rating) | Q(qualifications__in= qualifications))
-
+        if self.request.user.is_superuser:
+            queryset = Doctor.objects.select_related('user')\
+                .filter(Q(rating=rating) | Q(qualifications__in= qualifications))
+        else:
+            queryset = Doctor.objects.select_related('user')\
+                .filter(Q(user__is_banned=False) & Q(rating=rating) | Q(qualifications__in=qualifications))
         return queryset
 
     def get_context_data(self, *args, **kwargs):

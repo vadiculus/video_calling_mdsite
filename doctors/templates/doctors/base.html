@@ -7,13 +7,23 @@
 <body>
 {% if user.is_authenticated %}
 <a href="{% url 'accounts:profile' user.username %}">{{ user.username }}</a>
-    <a href="{% url 'accounts:logout' %}">logout</a>
+<a href="{% url 'accounts:logout' %}">logout</a>
+{% if user.is_superuser %}
+<a href="{% url 'chat:admin_chat_list' %}">Чат</a><br>
+{% else %}
+<a href="{% url 'chat:premium_chat_list' %}">Чат</a>
+<a href="{% url 'chat:admin_chat_list' %}">Администрация</a><br>
+{% endif %}
 {% else %}
     <a href="{% url 'accounts:register_client' %}">Для клиентов</a>
     <a href="{% url 'accounts:register_doctor' %}">Для враче</a>
     <a href="{% url 'accounts:login' %}">Вход</a>
 {% endif %}
+<hr>
 {% block content %}
+{% endblock %}
+
+{% block scripts %}
 {% endblock %}
 </body>
 </html>

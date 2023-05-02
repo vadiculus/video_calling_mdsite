@@ -2,13 +2,18 @@
 {% load static %}
 {% block content %}
 <br>
-{% if profile.photo %}
+{% if page_user.photo %}
 <img src="{{ profile.photo.url }}">
 {% endif %}
-<span>{{ profile.username }}</span>
-<span>{{ profile.username }}</span>
-<a href="{% url 'accounts:update_client_profile' %}">Изменить профиль</a>
-<a href="{% url 'accounts:change_password' %}">Изменить пароль</a>
+<span>{{ page_user.full_name }}</span>
+
+{% if user == page_user %}
+<a href="{% url 'accounts:update_doctor_profile' %}">Изменить профиль</a>
+<a href="{% url 'accounts:change_password' %}">Изменить пароль</a><br>
+{% elif user.is_superuser %}
+<a href="{% url 'chat:create_chat' page_user.username %}">Написать</a><br>
+<a href="{% url 'accounts:ban' page_user.username %}">Заблокировать</a><br>
+{% endif %}
 
 
 {% endblock %}

@@ -1,0 +1,22 @@
+{% extends 'doctors/base.html' %}
+{% load static %}
+{% block content %}
+
+<h2>{{ interlocutor.full_name }}</h2>
+
+
+<ul id="chat_log">
+    {% for message in chat_messages %}
+    <li>{{ message.author.full_name }}: {{ message.text }}</li>
+    {% endfor %}
+</ul>
+
+<input id="chat_message_input" type="text">
+<button id="send_btn" type="button">Отправить</button>
+
+{% endblock %}
+
+{% block scripts %}
+{{ chat_id | json_script:'chat_id' }}
+<script src="{% static 'chat/js/premium_client_script.js' %}"></script>
+{% endblock %}

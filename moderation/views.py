@@ -10,7 +10,7 @@ from .forms import AddCertificationConfirmationForm
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
 from accounts.models import User
-
+from doctors.utils import require_doctors
 
 def сertification_сonfirmation_view(request, pk, status):
     '''Админы поттверждают или отвергают запрос на квалификацию врача'''
