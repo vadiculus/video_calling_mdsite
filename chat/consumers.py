@@ -1,8 +1,40 @@
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
-from .models import PremiumChat, PremiumChatMessage, AdminChat, AdminChatMessage
+from .models import PremiumChat, PremiumChatMessage, AdminChat, AdminChatMessage, OrderedCall
 import json
 from asgiref.sync import sync_to_async
+
+class CallConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        pk = self.scope["url_route"]["kwargs"]['call_id']
+        self.room_name = f'call.{pk}'
+        self.chat = await database_sync_to_async(OrderedCall.objects.get)(pk=pk)
+        self.user = self.scope['user']
+        await self.channel_layer.group_add(self.room_name, self.channel_name)
+        await self.accept()
+
+    async def disconnect(self, code):
+        await self.channel_layer.group_send(self.room_name, {'type':'send_message',
+                                                              'data':{
+                                                                  'peer':self.user.username,
+                                                                  'action':'disconnected'}})
+        await self.channel_layer.group_discard(self.room_name, self.channel_name)
+
+    async def receive(self, text_data=None, bytes_data=None):
+        data = json.loads(text_data)
+        data['peer'] = self.user.username
+
+        if data['action'] == 'get_peer_name':
+            data['data'] = {'peer':self.user.username, 'full_name':self.user.full_name}
+            await self.channel_layer.send(self.channel_name, {'type':'send_message', 'data':data})
+        else:
+            await self.channel_layer.group_send(self.room_name, {'type':'send_message', 'data':data})
+
+    async def send_message(self, event):
+        data = json.dumps(event['data'])
+
+        await self.send(data)
+
 
 class PremiumConsumer(AsyncWebsocketConsumer):
     async def connect(self):

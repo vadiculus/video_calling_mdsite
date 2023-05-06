@@ -1,12 +1,17 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from .models import PremiumChat, PremiumChatMessage, AdminChatMessage, AdminChat
+from .models import PremiumChat, PremiumChatMessage, AdminChatMessage, AdminChat, OrderedCall
 from django.http import Http404
 from accounts.models import User
 from doctors.utils import require_premium_and_doctors, require_not_superusers
 from django.db.models import Prefetch
+from moderation.utils import require_not_banned
+from django.contrib.auth.views import login_required
+import pytz
+import datetime
 
 @require_not_superusers
 @require_premium_and_doctors
+@require_not_banned
 def premium_chat(request, chat_id):
     chat = get_object_or_404(PremiumChat.objects.prefetch_related(
         Prefetch('premium_chat_messages', PremiumChatMessage.objects.select_related('author'))), pk=chat_id)
@@ -33,7 +38,7 @@ def premium_chat(request, chat_id):
     else:
         raise Http404
 
-
+@login_required
 def admin_chat(request, chat_id):
     chat = get_object_or_404(AdminChat.objects.prefetch_related(
         Prefetch('admin_chat_messages', AdminChatMessage.objects.select_related('author'))), pk=chat_id)
@@ -50,6 +55,7 @@ def admin_chat(request, chat_id):
     else:
         raise Http404
 
+@require_not_banned
 def create_chat(request, username):
     user = request.user
     interlocutor = get_object_or_404(User, username=username)
@@ -86,9 +92,29 @@ def premium_chat_list_view(request):
     chats = PremiumChat.objects.prefetch_related('participants').filter(participants=request.user)
     return render(request, 'chat/premium_chat_list.html', {'chats':chats})
 
+@login_required
 def admin_chat_list_view(request):
     chats = AdminChat.objects.prefetch_related('participants').filter(participants__id__in=[request.user.id])
     return render(request, 'chat/admin_chat_list.html', {'chats':chats})
 
+@require_not_banned
+def ordered_call_view(request, pk):
+    ordered_call = get_object_or_404(OrderedCall.objects.select_related('visiting_time'), pk=pk)
+    if ordered_call.is_active():
+        return render(request, 'chat/ordered_call.html', {'call_id':pk, 'call':ordered_call})
+    else:
+        if request.user.is_doctor:
+            title = 'Вы пропусти свое время'
+            body = 'На вас была поданна жалоба'
+            return render(request, 'errors/some_error.html', {'title': title, 'body':body})
+        else:
+            title = 'Вы пропусти свое время'
+            body = 'С вашего счета была списана сумма за звонок'
+            return render(request, 'errors/some_error.html', {'title': title, 'body': body})
 
+@require_not_banned
+def ordered_call_list(request):
+    ordered_calls = OrderedCall.objects.select_related('visiting_time')\
+        .prefetch_related('participants').filter(participants__id=request.user.id)
+    return render(request, 'chat/ordered_call_list.html', {'calls':ordered_calls})
 

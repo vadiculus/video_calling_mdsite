@@ -5,7 +5,7 @@ from .forms import DoctorSearchForm
 from django.db.models import Q
 
 def index(request):
-    return render(request, 'doctors/index.html')
+    return render(request, 'doctors/doctor_search_page.html')
 
 class DoctorSearchView(ListView):
     queryset = Doctor
@@ -21,7 +21,7 @@ class DoctorSearchView(ListView):
                 .filter(Q(rating=rating) | Q(qualifications__in= qualifications))
         else:
             queryset = Doctor.objects.select_related('user')\
-                .filter(Q(user__is_banned=False) & Q(rating=rating) | Q(qualifications__in=qualifications))
+                .filter(Q(is_confirmed=True) & Q(user__is_banned=False) & Q(rating=rating) | Q(qualifications__in=qualifications))
         return queryset
 
     def get_context_data(self, *args, **kwargs):

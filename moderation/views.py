@@ -11,6 +11,10 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
 from accounts.models import User
 from doctors.utils import require_doctors
+from django.urls import reverse_lazy
+
+from .utils import require_not_banned
+
 
 def сertification_сonfirmation_view(request, pk, status):
     '''Админы поттверждают или отвергают запрос на квалификацию врача'''
@@ -33,11 +37,21 @@ def сertification_сonfirmation_view(request, pk, status):
 class AddCertificationConfirmationView(CreateView):
     '''Класс для добавления квалификаций врачу. (Не создание профиля)'''
     form_class = AddCertificationConfirmationForm
+    template_name = 'moderation/add_qualifications.html'
+    success_url = reverse_lazy('accounts:doctor_success_register_message')
 
     def dispatch(self, request, *args, **kwargs):
-        if not request.user.is_doctor:
+        if request.user.is_authenticated:
+            if not request.user.is_doctor or request.user.is_banned:
+                raise Http404
+            return super().dispatch(request, *args, **kwargs)
+        else:
             raise Http404
-        return super().dispatch(request, *args, **kwargs)
+
+    def get_form(self, form_class=None):
+        if form_class is None:
+            form_class = self.get_form_class()
+        return form_class(self.request.user,**self.get_form_kwargs())
 
     def form_valid(self, form):
         qualifications = form.cleaned_data['qualifications']

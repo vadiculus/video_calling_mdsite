@@ -2,11 +2,24 @@
 {% load static %}
 {% block content %}
 <br>
-{% if profile.photo %}
-<img width="100px" src="{{ profile.photo.url }}">
+{% if page_user.photo %}
+<div class="user_photo" style="background: url({{ page_user.photo.url }}) center no-repeat;
+        background-size: auto 100%;
+        border-radius: 100%;
+        width:100px;
+        height: 100px">
+</div>
 {% endif %}
 <span>Имя: {{ page_user.full_name }}</span><br>
-<span>BIO: {{ page_user.doctor.bio }}</span>
+<span>BIO: {{ page_user.doctor.bio }}</span><br><br>
+{% if page_user.doctor.is_confirmed %}
+<span>Квалификации: </span>
+<ul>
+    {% for qualification in page_user.doctor.qualifications.all %}
+    <li>{{ qualification.name }}</li>
+    {% endfor %}
+</ul>
+{% endif %}
 {% if user == page_user %}
 <a href="{% url 'accounts:update_doctor_profile' %}">Изменить профиль</a>
 <a href="{% url 'accounts:add_certification_confirmation' %}">Добавить квалификацию</a>
@@ -14,8 +27,17 @@
 {% elif user.is_superuser %}
 <a href="{% url 'chat:create_chat' page_user.username %}">Написать</a><br>
 <a href="{% url 'accounts:ban' page_user.username %}">Заблокировать</a><br>
-{% elif not user.is_doctor %}
+{% endif %}
+
+
+{% if user.is_authenticated %}
+{% if not user.is_doctor  %}
+{% if user.client.is_premium %}
 <a href="{% url 'chat:create_chat' page_user.username %}">Написать</a><br>
+{% else %}
+<p>Чтобы написать доктору вы должны <a href="{% url 'accounts:buy_premium_account' %}">купить пермиум аккаунт</a></p>
+{% endif %}
+{% endif %}
 {% endif %}
 
 {% if calendar %}
@@ -23,24 +45,22 @@
 {% for day, time in calendar.items %}
 day: {{ day | date:'d.m.Y' }}<br>
 {% for timestamp in time %}
+{% if timestamp.is_booked %}
+<span style="color: red">{{ timestamp.time | time:'H:i' }}</span>
+{% else %}
 <a href="{% url 'calendars:book_call' timestamp.id %}">{{ timestamp.time | time:'H:i' }}</a>
+{% endif %}
 {% endfor %}
 <br>
 {% endfor %}
+<br>
+<a href="{% url 'calendars:create_visiting_time' %}">Добавить время для визита</a><br>
 {% else %}
 {% if page_user != user %}
 У доктора пока что нету сввободного времени.
 {% else %}
 У вас нету свободного времени
 {% endif %}
-{% endif %}
-
-{% if page_user == user %}
-<form action="{% url 'calendars:create_visiting_time' %}" method="post">
-    {% csrf_token %}
-    {{ visiting_time_form.as_p }}
-    <button type="submit">Создать запись</button>
-</form>
 {% endif %}
 
 {% endblock %}

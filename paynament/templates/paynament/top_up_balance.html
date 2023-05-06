@@ -1,0 +1,12 @@
+{% extends 'doctors/base.html' %}
+{% load static %}
+{% block content %}
+
+<form method="post">
+    {% csrf_token %}
+    {{ form }}
+    <button type="submit">Пополнить баланс</button>
+</form>
+
+
+{% endblock %}

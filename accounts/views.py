@@ -21,6 +21,8 @@ from django.db.models import Prefetch
 from doctors.models import Doctor
 from django.db import transaction
 from calendars.forms import VisitingTimeForm
+from paynament.models import Balance
+from doctors.utils import require_clients
 import datetime
 
 class RegisterClientView(CreateView):
@@ -31,6 +33,7 @@ class RegisterClientView(CreateView):
 
     def form_valid(self, form):
         self.object = form.save()
+        Balance.objects.create(user=self.object)
         login(self.request, self.object)
 
         return HttpResponseRedirect(self.get_success_url())
@@ -45,6 +48,7 @@ class RegisterDoctorUserView(CreateView):
         self.object = form.save(commit=False)
         self.object.is_doctor = True
         self.object.save()
+        Balance.objects.create(user=self.object)
         login(self.request, self.object)
 
         return HttpResponseRedirect(self.get_success_url())
@@ -80,7 +84,7 @@ class CertificationConfirmationView(CreateView):
 
 class LoginUserView(LoginView):
     form_class = AuthenticationForm
-    template_name = 'accounts/register.html'
+    template_name = 'accounts/login.html'
     success_url = reverse_lazy('doctors:index')
 
     def get_success_url(self):
@@ -98,6 +102,13 @@ def profile(request, username):
     user = get_object_or_404(User, username=username)
     if not user.is_banned:
         if user.is_doctor:
+            try:
+                doctor = user.doctor
+            except Doctor.DoesNotExist:
+                if user == request.user:
+                    return render(request, 'accounts/doctor_without_profile.html', {'page_user': user})
+                else:
+                    raise Http404
             # profile = get_object_or_404(User.objects.select_related(
             #     Prefetch('doctor', Doctor.objects.prefetch_related('visiting_time'))),
             #     username=username)
@@ -118,13 +129,12 @@ def profile(request, username):
                                                                    'calendar':calendar_dict,
                                                                    'visiting_time_form':VisitingTimeForm()})
         else:
-            user = get_object_or_404(User.objects.select_related('client'), username=username)
             return render(request,'accounts/client_profile.html', {'page_user':user})
     return render(request, 'accounts/banned_user.html', {'page_user':user})
 
 class UpdateDoctorProfileView(LoginRequiredMixin, UpdateView):
     form_class = UpdateDoctorProfileForm
-    template_name = 'accounts/login.html'
+    template_name = 'accounts/update_profile.html'
 
     def get_object(self, queryset=None):
         return self.request.user.doctor
@@ -139,7 +149,7 @@ class UpdateDoctorProfileView(LoginRequiredMixin, UpdateView):
 
 class UpdateClientProfileView(LoginRequiredMixin, UpdateView):
     form_class = UpdateUserProfileForm
-    template_name = 'accounts/login.html'
+    template_name = 'accounts/update_profile.html'
 
     def get_object(self, queryset=None):
         if not self.request.user.is_doctor:
@@ -173,3 +183,19 @@ def unban_user_view(request, username):
         return redirect('accounts:profile', user.username)
     else:
         raise Http404
+
+@require_clients
+def buy_premium_account(request):
+    user = request.user
+    if request.method == 'POST':
+        if user.balance.balance >= 50:
+            with transaction.atomic():
+                user.balance.balance -= 50
+                user.client.is_premium = True
+                user.client.save()
+                user.balance.save()
+            return redirect('accounts:profile', username=request.user.username)
+        title = 'У вас недостаточно средсв для покупки'
+        return render(request, 'errors/some_error.html', {'title':title})
+    return render(request, 'accounts/buy_premium_account.html')
+

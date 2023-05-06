@@ -9,6 +9,8 @@ from doctors.utils import require_clients
 from django.db import transaction
 from django.views.generic import CreateView
 from doctors.utils import require_doctors
+from django.urls import reverse_lazy
+from django.http import Http404, HttpResponseRedirect
 
 @require_clients
 def book_call_view(request, pk):
@@ -19,25 +21,29 @@ def book_call_view(request, pk):
             call_form = CreateCallForm(data=request.POST)
             if call_form.is_valid():
                 with transaction.atomic():
-                    call_form.save(request.user.client, visiting_time, commit=True)
+                    call_form.save(request.user, visiting_time, commit=True)
                 return redirect('doctors:index')
         return render(request, 'calendars/book_call.html', {'form':form, 'visiting_time':visiting_time})
     else:
         return render(request, 'calendars/booked_error.html')
 
-@require_POST
-@require_doctors
-def create_visiting_time_model(request):
-    form = VisitingTimeForm(request.POST)
-    if form.is_valid():
-        visiting_time = form.save(commit=False)
-        visiting_times = VisitingTime.objects.filter(doctor=request.user.doctor, time=visiting_time.time)
-        if not visiting_times:
-            visiting_time.doctor = request.user.doctor
-            visiting_time.save()
-            return redirect('accounts:profile', request.user.username)
-        title = 'У вас уже есть запись на это время'
-        return render(request, 'errors/some_error.html', {'title': title})
-    return render(request, 'errors/some_error.html', {'title':form.errors})
+class CreateVisitingTimeView(CreateView):
+    form_class = VisitingTimeForm
+    template_name = 'calendars/add_visiting_time.html'
 
+    def dispatch(self, request, *args, **kwargs):
+        if self.request.user.is_doctor:
+            return super().dispatch(request, *args, **kwargs)
+        raise Http404
+
+    def form_valid(self, form):
+        self.object = form.save(commit=False)
+        visiting_times = VisitingTime.objects.filter(doctor=self.request.user.doctor, time=self.object.time)
+        if not visiting_times:
+            self.object.doctor = self.request.user.doctor
+            self.object.save()
+        return HttpResponseRedirect(self.get_success_url())
+
+    def get_success_url(self):
+        return reverse_lazy('accounts:profile', kwargs={'username':self.request.user.username})
 

@@ -13,7 +13,7 @@ urlpatterns = [
     path('logout/', views.logout_user, name='logout'),
     path('profile/<str:username>', views.profile, name='profile'),
     path('update-doctor-profile/', views.UpdateDoctorProfileView.as_view(), name='update_doctor_profile'),
-    path('update-client-profile/', views.UpdateDoctorProfileView.as_view(), name='update_client_profile'),
+    path('update-client-profile/', views.UpdateClientProfileView.as_view(), name='update_client_profile'),
     path('change-password/', views.PasswordChangeView.as_view(
             template_name='accounts/change_password.html',
             success_url=views.reverse_lazy('accounts:login')),
@@ -21,6 +21,7 @@ urlpatterns = [
     path('add-certification-confirmation/', views.AddCertificationConfirmationView.as_view(),
          name='add_certification_confirmation'),
     path('ban/<str:username>', views.ban_user_view, name='ban'),
-    path('unban/<str:username>', views.unban_user_view, name='unban')
+    path('unban/<str:username>', views.unban_user_view, name='unban'),
+    path('buy-premium-account/', views.buy_premium_account, name='buy_premium_account')
 
 ]

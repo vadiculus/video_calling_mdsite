@@ -4,7 +4,7 @@ from doctors.models import Qualification
 from accounts.models import Client
 
 class CertificationConfirmation(models.Model):
-    doctor = models.OneToOneField(Doctor, related_name='confirmation', on_delete=models.CASCADE, verbose_name='Доктор')
+    doctor = models.ForeignKey(Doctor, related_name='confirmation', on_delete=models.CASCADE, verbose_name='Доктор')
     qualifications = models.ManyToManyField(Qualification, verbose_name='Запрос на получение квалификации')
 
     def __str__(self):

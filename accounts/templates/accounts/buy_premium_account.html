@@ -1,0 +1,11 @@
+{% extends 'doctors/base.html' %}
+{% load static %}
+{% block content %}
+<h1>Вы уверенны в покупке премиум аккаунта?</h1>
+<p>Премиум аккаунт: 50 фантиков</p>
+<form method="post">
+    {% csrf_token %}
+    <button type="submit">Оформить покупку</button>
+</form>
+
+{% endblock %}

@@ -4,6 +4,8 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from doctors.models import Doctor
 from accounts.models import Client
 from accounts.models import User
+import datetime
+import pytz
 import uuid
 
 class OrderedCall(models.Model):
@@ -12,15 +14,27 @@ class OrderedCall(models.Model):
                                          related_name='ordered_call',
                                          on_delete=models.CASCADE,
                                          verbose_name='Время визита')
-    doctor = models.ForeignKey(Doctor, related_name='doctor_ordered_calls', on_delete=models.CASCADE, verbose_name='Доктор')
-    client = models.ForeignKey(Client, related_name='client_ordered_calls', on_delete=models.CASCADE, verbose_name='Клиент')
+    participants = models.ManyToManyField(User, related_name='ordered_calls')
+    # doctor = models.ForeignKey(Doctor, related_name='doctor_ordered_calls', on_delete=models.CASCADE, verbose_name='Доктор')
+    # client = models.ForeignKey(Client, related_name='client_ordered_calls', on_delete=models.CASCADE, verbose_name='Клиент')
     ordered_time = models.IntegerField(
         default=60,
         validators=[MaxValueValidator(240), MinValueValidator(15)],
         verbose_name='Время звонка') # Выделеное время заказчика
-    call_start = call_end = models.DateTimeField()
+    call_start = call_end = models.DateTimeField(null=True, blank=True)
     call_end = models.DateTimeField(null=True,default=None, blank=True)
     is_success = models.BooleanField(default=False, verbose_name='Успешный')
+
+    def is_active(self):
+        visiting_time = self.visiting_time.time
+        call_end = visiting_time + datetime.timedelta(
+            minutes=self.visiting_time.max_time) - datetime.timedelta(minutes=10)
+        utc = pytz.UTC
+
+        return visiting_time < utc.localize(datetime.datetime.now()) < call_end
+
+    def get_interlocutor(self, user):
+        return self.participants.exclude(pk=user.pk).first()
 
     def save(self, *args, **kwargs):
         self.id = uuid.uuid4()

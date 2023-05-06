@@ -1,0 +1,12 @@
+{% extends 'doctors/base.html' %}
+{% load static %}
+{% block content %}
+<br>
+Время: {{ visiting_time.time }}<br>
+Максимальная продолжительность звонка: {{ visiting_time.max_time }}<br>
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Забронировать</button>
+</form>
+{% endblock %}

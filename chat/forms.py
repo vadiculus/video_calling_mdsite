@@ -16,13 +16,10 @@ class CreateCallForm(forms.ModelForm):
     def save(self, client, visiting_time, commit=True):
         call = super().save(commit=False)
         call.visiting_time = visiting_time
-        call.call_start = visiting_time.time
-        call.doctor = visiting_time.doctor
-        call.client = client
-        call.call_start = visiting_time.time
         visiting_time.is_booked = True
         visiting_time.save()
         call.save()
+        call.participants.set([visiting_time.doctor.user, client])
         return call
 
 

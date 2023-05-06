@@ -1,0 +1,18 @@
+{% extends 'doctors/base.html' %}
+{% load static %}
+{% block content %}
+<br>
+{% if page_user.photo %}
+<div class="user_photo" style="background: url({{ page_user.photo.url }}) center no-repeat;
+        background-size: auto 100%;
+        border-radius: 100%;
+        width:100px;
+        height: 100px">
+</div>
+{% endif %}
+<span>Имя: {{ page_user.full_name }}</span><br>
+
+<h2>У вас нету профиля доктора</h2>
+<p>Создайте профиль по <a href="{% url 'accounts:certification_confirmation' %}">этой ссылке</a></p>
+
+{% endblock %}

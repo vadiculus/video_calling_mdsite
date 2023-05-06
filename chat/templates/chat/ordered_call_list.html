@@ -1,0 +1,20 @@
+{% extends 'doctors/base.html' %}
+{% load static %}
+{% load chat_filters %}
+{% block content %}
+
+{% if calls %}
+{% for call in calls %}
+<div style="border: 1px solid grey">
+    <span>{{ call|get_interlocutor:user }}</span><br>
+    <span>{{ call.visiting_time.time }}</span>
+    {% if call.is_active %}
+    <a href="{% url 'chat:ordered_call' call.pk %}">Начать звонок</a>
+    {% endif %}
+</div>
+{% endfor %}
+{% else %}
+<h3>У вас пока что нету забронированых звонков</h3>
+{% endif %}
+
+{% endblock %}

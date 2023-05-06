@@ -27,7 +27,7 @@ class RegisterDoctorForm(forms.ModelForm):
         fields = ['qualifications', 'bio', 'service_cost']
 
 class UpdateDoctorProfileForm(forms.ModelForm):
-    photo = forms.ImageField(required=False)
+    photo = forms.ImageField(label='Фото',required=False)
     def save(self, commit=True):
         doctor = super().save(commit)
         photo = self.cleaned_data.get('photo')

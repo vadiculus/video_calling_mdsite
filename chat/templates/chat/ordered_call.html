@@ -1,0 +1,20 @@
+{% extends 'doctors/base.html' %}
+{% load static %}
+{% load chat_filters %}
+{% block content %}
+<label>Камера: <input type="checkbox" checked id="video-checkbox" onchange="" value="Включить камеру"><br>
+</label>
+<label>Микрофон: <input type="checkbox" onclick="audioCheck(event)" checked id="audio-checkbox" onchange="" value="Включить камеру"><br>
+</label>
+<span>{{ user.full_name }}</span><br>
+<div class="video_container" style="background: grey"><video muted autoplay id="local-video" width="300" height="200"></video></div><br>
+<span>{{ call|get_interlocutor:user }}</span><br>
+<div class="video_container" style="background: grey"><video autoplay id="remote-video" width="300" height="200"></video></div>
+
+<ul id="chat-log">
+</ul>
+<textarea id="chat-input" type="text"></textarea>
+<input id="send-msg-button" onclick="" type="button" value="Отправить">
+{{ call_id|json_script:"call_id" }}
+<script src="{% static 'chat/js/call_client_script.js' %}"></script>
+{% endblock %}

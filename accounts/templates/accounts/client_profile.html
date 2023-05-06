@@ -3,16 +3,26 @@
 {% block content %}
 <br>
 {% if page_user.photo %}
-<img src="{{ profile.photo.url }}">
+<div class="user_photo" style="background: url({{ page_user.photo.url }}) center no-repeat;
+        background-size: auto 100%;
+        border-radius: 100%;
+        width:100px;
+        height: 100px">
+</div>
 {% endif %}
 <span>{{ page_user.full_name }}</span>
 
 {% if user == page_user %}
-<a href="{% url 'accounts:update_doctor_profile' %}">Изменить профиль</a>
+<a href="{% url 'paynament:top_up_balance' %}">Пополнить баланс</a>
+<a href="{% url 'accounts:update_client_profile' %}">Изменить профиль</a>
 <a href="{% url 'accounts:change_password' %}">Изменить пароль</a><br>
 {% elif user.is_superuser %}
 <a href="{% url 'chat:create_chat' page_user.username %}">Написать</a><br>
 <a href="{% url 'accounts:ban' page_user.username %}">Заблокировать</a><br>
+{% endif %}
+
+{% if not page_user.client.is_premium %}
+<a href="{% url 'accounts:buy_premium_account' %}">Купить премиум аккаунт</a>
 {% endif %}
 
 
