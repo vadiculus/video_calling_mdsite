@@ -8,10 +8,16 @@ class CallConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         pk = self.scope["url_route"]["kwargs"]['call_id']
         self.room_name = f'call.{pk}'
-        self.chat = await database_sync_to_async(OrderedCall.objects.get)(pk=pk)
+        self.chat = await database_sync_to_async(OrderedCall.objects.prefetch_related('participants').get)(pk=pk)
         self.user = self.scope['user']
         await self.channel_layer.group_add(self.room_name, self.channel_name)
-        await self.accept()
+        print('connected')
+        await self.channel_layer.group_send(self.room_name, {'type': 'send_message',
+                                                             'data': {
+                                                                 'peer': self.user.username,
+                                                                 'action': 'connected'}})
+        if self.user in await sync_to_async(self.chat.participants.all)():
+            await self.accept()
 
     async def disconnect(self, code):
         await self.channel_layer.group_send(self.room_name, {'type':'send_message',

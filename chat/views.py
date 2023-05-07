@@ -6,6 +6,7 @@ from doctors.utils import require_premium_and_doctors, require_not_superusers
 from django.db.models import Prefetch
 from moderation.utils import require_not_banned
 from django.contrib.auth.views import login_required
+from django.views.decorators.cache import never_cache
 import pytz
 import datetime
 
@@ -98,10 +99,16 @@ def admin_chat_list_view(request):
     return render(request, 'chat/admin_chat_list.html', {'chats':chats})
 
 @require_not_banned
+@never_cache
 def ordered_call_view(request, pk):
     ordered_call = get_object_or_404(OrderedCall.objects.select_related('visiting_time'), pk=pk)
     if ordered_call.is_active():
-        return render(request, 'chat/ordered_call.html', {'call_id':pk, 'call':ordered_call})
+        interlocutor = ordered_call.get_interlocutor(request.user)
+        return render(request, 'chat/ordered_call.html', {
+            'call_id':pk,
+            'call':ordered_call,
+            'interlocutor': interlocutor
+        })
     else:
         if request.user.is_doctor:
             title = 'Вы пропусти свое время'

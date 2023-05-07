@@ -1,15 +1,59 @@
 {% extends 'doctors/base.html' %}
 {% load static %}
 {% load chat_filters %}
+
+{% block meta %}
+<meta http-equiv="cache-control" content="no-cache, must-revalidate, post-check=0, pre-check=0">
+<meta http-equiv="expires" content="0">
+<meta http-equiv="pragma" content="no-cache">
+{% endblock %}
+
 {% block content %}
-<label>Камера: <input type="checkbox" checked id="video-checkbox" onchange="" value="Включить камеру"><br>
+<label>Камера: <input type="checkbox" checked id="video-checkbox" onchange="" autocomplete="off" value="Включить камеру"><br>
 </label>
-<label>Микрофон: <input type="checkbox" onclick="audioCheck(event)" checked id="audio-checkbox" onchange="" value="Включить камеру"><br>
+<label>Микрофон: <input type="checkbox" checked id="audio-checkbox" onchange="" autocomplete="off" value="Включить камеру"><br>
 </label>
 <span>{{ user.full_name }}</span><br>
-<div class="video_container" style="background: grey"><video muted autoplay id="local-video" width="300" height="200"></video></div><br>
-<span>{{ call|get_interlocutor:user }}</span><br>
-<div class="video_container" style="background: grey"><video autoplay id="remote-video" width="300" height="200"></video></div>
+<div class="video_container" style="background: grey">
+    {% if user.photo %}
+    <div class="user_photo" style="background: url({{ user.photo.url }}) center no-repeat;
+            background-size: auto 100%;
+            border-radius: 100%;
+            width:100px;
+            height: 100px">
+    </div>
+    {% else %}
+    <div class="user_photo" style="background: url({% static 'accounts/img/user_icon.png' %}) center no-repeat;
+            background-size: auto 100%;
+            border-radius: 100%;
+            width:100px;
+            height: 100px">
+    </div>
+    {% endif %}
+    <span style="visibility: hidden" id='my_microphone_state' >Микрофон выключен</span>
+    <video muted autoplay id="local-video" width="300" height="200"></video>
+</div><br>
+<span>{{ interlocutor.full_name }}</span><br>
+<div class="video_container" style="background: grey">
+    {% if interlocutor.photo %}
+    <div class="user_photo" style="background: url({{ interlocutor.photo.url }}) center no-repeat;
+            background-size: auto 100%;
+            border-radius: 100%;
+            width:100px;
+            height: 100px">
+    </div>
+    {% else %}
+    <div class="user_photo" style="background: url({% static 'accounts/img/user_icon.png' %}) center no-repeat;
+            background-size: auto 100%;
+            border-radius: 100%;
+            width:100px;
+            height: 100px">
+    </div>
+    {% endif %}
+    <span style="visibility: hidden" id='interlocutor_microphone_state'>Микрофон выключен</span>
+    <video autoplay id="remote-video" width="300" height="200"></video>
+    <h3 style="display: none" id="connection_state">Отключен</h3>
+</div>
 
 <ul id="chat-log">
 </ul>

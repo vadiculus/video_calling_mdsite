@@ -9,6 +9,13 @@
         width:100px;
         height: 100px">
 </div>
+{% else %}
+<div class="user_photo" style="background: url({% static 'accounts/img/user_icon.png' %}}) center no-repeat;
+        background-size: auto 100%;
+        border-radius: 100%;
+        width:100px;
+        height: 100px">
+</div>
 {% endif %}
 <span>Имя: {{ page_user.full_name }}</span><br>
 <span>BIO: {{ page_user.doctor.bio }}</span><br><br>
