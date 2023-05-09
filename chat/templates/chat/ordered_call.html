@@ -32,6 +32,7 @@
     {% endif %}
     <span style="visibility: hidden" id='my_microphone_state' >Микрофон выключен</span>
     <video muted autoplay id="local-video" width="300" height="200"></video>
+    <button id="end_call_button" type="button">Завершить звонок</button>
 </div><br>
 <span>{{ interlocutor.full_name }}</span><br>
 <div class="video_container" style="background: grey">
@@ -57,8 +58,21 @@
 
 <ul id="chat-log">
 </ul>
+
 <textarea id="chat-input" type="text"></textarea>
-<input id="send-msg-button" onclick="" type="button" value="Отправить">
+<input id="send-msg-btn" onclick="" type="button" value="Отправить"><br>
+
+<div id="end_call_question">
+    <form method="post" id="review_form">
+        {{ review_form }}
+        <button id="review_btn" type="button">Оценить</button>
+    </form>
+    <form method="post" id="complaint_form">
+        {{ complaint_form }}
+        <button id="complaint_btn" type="button">Оценить</button>
+    </form>
+</div>
+
 {{ call_id|json_script:"call_id" }}
 <script src="{% static 'chat/js/call_client_script.js' %}"></script>
 {% endblock %}

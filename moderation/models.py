@@ -1,7 +1,8 @@
 from django.db import models
 from doctors.models import Doctor
 from doctors.models import Qualification
-from accounts.models import Client
+from accounts.models import Client, User
+from chat.models import OrderedCall
 
 class CertificationConfirmation(models.Model):
     doctor = models.ForeignKey(Doctor, related_name='confirmation', on_delete=models.CASCADE, verbose_name='Доктор')
@@ -22,18 +23,12 @@ class CertificationPhoto(models.Model):
         verbose_name = 'Фото Сертификации'
         verbose_name_plural = 'Фотографии Сертификаций'
 
-class ClientComplaint(models.Model):
-    client = models.ForeignKey(Client, on_delete=models.CASCADE, verbose_name='Клиент')
+class Complaint(models.Model):
+    accused = models.ForeignKey(User, related_name='accused_complaints', on_delete=models.CASCADE, verbose_name='Обвиняемый')
+    initiator = models.ForeignKey(User, related_name='initiator_complaints', on_delete=models.PROTECT, verbose_name='Инициатор')
     cause = models.CharField(max_length=150, verbose_name='Причина')
+    ordered_call = models.ForeignKey(OrderedCall, null=True, blank=True, on_delete=models.PROTECT, verbose_name='Звонок')
 
     class Meta:
-        verbose_name = 'Жалоба на клиента'
-        verbose_name_plural = 'Жалобы на клиентов'
-
-class DoctorComplaint(models.Model):
-    doctor = models.ForeignKey(Doctor, on_delete=models.CASCADE, verbose_name='Доктор')
-    cause = models.CharField(max_length=150, verbose_name='Причина')
-
-    class Meta:
-        verbose_name = 'Жалоба на доктора'
-        verbose_name_plural = 'Жалобы на докторов'
+        verbose_name = 'Жалоба'
+        verbose_name_plural = 'Жалобы'

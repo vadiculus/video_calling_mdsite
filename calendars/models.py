@@ -9,3 +9,11 @@ class VisitingTime(models.Model):
     is_booked = models.BooleanField(default=False, blank=True, verbose_name='Забронировано')
     max_time = models.IntegerField(default=60, validators=[MaxValueValidator(240), MinValueValidator(15)])
 
+    def get_price(self):
+        price = round((self.max_time / 60 * 100) * (float(self.doctor.service_cost) / 100))
+        return price
+
+    def get_percent(self):
+        percent = (round(self.max_time / 60) * 5) * (float(self.doctor.service_cost) / 100)
+        return percent
+

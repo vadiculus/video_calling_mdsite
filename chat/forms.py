@@ -1,9 +1,10 @@
 from django import forms
 from .models import OrderedCall
+from doctors.models import Review
 
 class CreateCallForm(forms.ModelForm):
 
-    def __init__(self, max_time=50, *args, **kwargs):
+    def __init__(self, max_time=60, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['ordered_time'] = forms.IntegerField(
             label = 'Продолжительность звонка',
@@ -22,7 +23,6 @@ class CreateCallForm(forms.ModelForm):
         call.participants.set([visiting_time.doctor.user, client])
         return call
 
-
     class Meta:
         model = OrderedCall
-        fields =['ordered_time']
+        fields = ['ordered_time']

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import CertificationConfirmation
+from .models import CertificationConfirmation, Complaint
 from django.utils.safestring import mark_safe
 
 class CertificationConfirmationAdmin(admin.ModelAdmin):
@@ -31,4 +31,5 @@ class CertificationConfirmationAdmin(admin.ModelAdmin):
 
 
 admin.site.register(CertificationConfirmation, CertificationConfirmationAdmin)
+admin.site.register(Complaint)
 

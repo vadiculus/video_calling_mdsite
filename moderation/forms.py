@@ -1,5 +1,5 @@
 from django import forms
-from .models import CertificationConfirmation
+from .models import CertificationConfirmation, Complaint
 from django.db.models import Q
 from doctors.models import Qualification
 
@@ -13,3 +13,8 @@ class AddCertificationConfirmationForm(forms.ModelForm):
     class Meta:
         model = CertificationConfirmation
         fields = ['qualifications']
+
+class ComplaintForm(forms.ModelForm):
+    class Meta:
+        models = Complaint
+        fields = ['cause']

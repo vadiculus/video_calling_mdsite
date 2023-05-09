@@ -15,15 +15,17 @@ from django.http import Http404, HttpResponseRedirect
 @require_clients
 def book_call_view(request, pk):
     visiting_time = get_object_or_404(VisitingTime, pk=pk)
-    form = CreateCallForm(max_time=visiting_time.max_time)
     if not visiting_time.is_booked:
         if request.method == 'POST':
-            call_form = CreateCallForm(data=request.POST)
-            if call_form.is_valid():
-                with transaction.atomic():
-                    call_form.save(request.user, visiting_time, commit=True)
+            with transaction.atomic():
+                call = OrderedCall()
+                call.visiting_time = visiting_time
+                visiting_time.is_booked=True
+                visiting_time.save()
+                call.save()
+                call.participants.set([visiting_time.doctor.user, request.user])
                 return redirect('doctors:index')
-        return render(request, 'calendars/book_call.html', {'form':form, 'visiting_time':visiting_time})
+        return render(request, 'calendars/book_call.html', {'visiting_time':visiting_time})
     else:
         return render(request, 'calendars/booked_error.html')
 

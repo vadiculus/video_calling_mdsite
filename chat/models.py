@@ -15,23 +15,28 @@ class OrderedCall(models.Model):
                                          on_delete=models.CASCADE,
                                          verbose_name='Время визита')
     participants = models.ManyToManyField(User, related_name='ordered_calls')
-    # doctor = models.ForeignKey(Doctor, related_name='doctor_ordered_calls', on_delete=models.CASCADE, verbose_name='Доктор')
-    # client = models.ForeignKey(Client, related_name='client_ordered_calls', on_delete=models.CASCADE, verbose_name='Клиент')
     ordered_time = models.IntegerField(
         default=60,
-        validators=[MaxValueValidator(240), MinValueValidator(15)],
+        validators=[MaxValueValidator(240)],
         verbose_name='Время звонка') # Выделеное время заказчика
     call_start = call_end = models.DateTimeField(null=True, blank=True)
     call_end = models.DateTimeField(null=True,default=None, blank=True)
     is_success = models.BooleanField(default=False, verbose_name='Успешный')
 
     def is_active(self):
-        visiting_time = self.visiting_time.time
-        call_end = visiting_time + datetime.timedelta(
-            minutes=self.visiting_time.max_time) - datetime.timedelta(minutes=10)
-        utc = pytz.UTC
+        # visiting_time = self.visiting_time.time
+        # call_end = visiting_time + datetime.timedelta(
+        #     minutes=self.visiting_time.max_time) - datetime.timedelta(minutes=10)
+        # utc = pytz.UTC
+        #
+        # return visiting_time < utc.localize(datetime.datetime.now()) < call_end
+        return True
 
-        return visiting_time < utc.localize(datetime.datetime.now()) < call_end
+    def get_client(self):
+        return self.participants.get(is_doctor=False)
+
+    def get_doctor(self):
+        return self.participants.get(is_doctor=True)
 
     def get_interlocutor(self, user):
         return self.participants.exclude(pk=user.pk).first()

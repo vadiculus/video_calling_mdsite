@@ -18,6 +18,7 @@
 </div>
 {% endif %}
 <span>Имя: {{ page_user.full_name }}</span><br>
+<span>BIO: {{ page_user.doctor.service_cost}}</span><br>
 <span>BIO: {{ page_user.doctor.bio }}</span><br><br>
 {% if page_user.doctor.is_confirmed %}
 <span>Квалификации: </span>

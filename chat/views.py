@@ -1,12 +1,18 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from .models import PremiumChat, PremiumChatMessage, AdminChatMessage, AdminChat, OrderedCall
-from django.http import Http404
+from django.http import Http404, JsonResponse
 from accounts.models import User
 from doctors.utils import require_premium_and_doctors, require_not_superusers
 from django.db.models import Prefetch
 from moderation.utils import require_not_banned
 from django.contrib.auth.views import login_required
 from django.views.decorators.cache import never_cache
+from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import csrf_exempt
+from django.db import transaction
+from django.db.models import Prefetch
+from doctors.forms import ReviewForm
+from moderation.forms import ComplaintForm
 import pytz
 import datetime
 
@@ -107,7 +113,8 @@ def ordered_call_view(request, pk):
         return render(request, 'chat/ordered_call.html', {
             'call_id':pk,
             'call':ordered_call,
-            'interlocutor': interlocutor
+            'interlocutor': interlocutor,
+            'review_form': ReviewForm(),
         })
     else:
         if request.user.is_doctor:
@@ -125,3 +132,43 @@ def ordered_call_list(request):
         .prefetch_related('participants').filter(participants__id=request.user.id)
     return render(request, 'chat/ordered_call_list.html', {'calls':ordered_calls})
 
+@require_POST
+def end_call(request, pk):
+    call = get_object_or_404(OrderedCall.objects.prefetch_related(
+        Prefetch('participants', User.objects.select_related('balance'))
+    ), pk=pk)
+    client, doctor = call.get_client(), call.get_doctor()
+    initiator = request.user
+    call_end_type = request.POST.get('status')
+
+    if initiator not in call.participants.all():
+        return JsonResponse({'status': 'no permissions'})
+
+    def money_transfer():
+        with transaction.atomic():
+            client.balance.balance -= call.get_price() + call.get_percent()
+            doctor.balance.balance += call.get_price()
+            client.balance.save()
+            doctor.balance.save()
+
+    if call_end_type == 'success':
+        money_transfer()
+        return JsonResponse({'status':'success'})
+
+    if call_end_type == 'review':
+        if not initiator.is_doctor:
+            review_form = ReviewForm(request.POST)
+            if review_form.is_valid():
+                review = review_form.save(commit=False)
+                review.client = request.user.client
+                money_transfer()
+            return JsonResponse({'status':'success'})
+
+    if call_end_type == 'complaint':
+        complaint_form = ReviewForm(request.POST)
+        if complaint_form.is_valid():
+            complaint = complaint_form.save(commit=False)
+            complaint.initiator = initiator
+            complaint.accused = call.get_interlocutor(initiator)
+        return JsonResponse({'status':'success'})
+    return JsonResponse({'status': 'success'})

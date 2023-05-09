@@ -4,9 +4,12 @@
 <br>
 Время: {{ visiting_time.time }}<br>
 Максимальная продолжительность звонка: {{ visiting_time.max_time }}<br>
-<form method="post" enctype="multipart/form-data">
+Стоимость звонка за полное время: {{ visiting_time.get_price }} фантиков<br>
+(Стоимость может варироваться в зависимости от времени)
+<form method="post">
     {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Забронировать</button>
+    <button type="submit">Принять</button>
 </form>
+
+
 {% endblock %}

@@ -1,8 +1,11 @@
+import datetime
+
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
 from .models import PremiumChat, PremiumChatMessage, AdminChat, AdminChatMessage, OrderedCall
 import json
 from asgiref.sync import sync_to_async
+import uuid
 
 class CallConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -10,8 +13,10 @@ class CallConsumer(AsyncWebsocketConsumer):
         self.room_name = f'call.{pk}'
         self.chat = await database_sync_to_async(OrderedCall.objects.prefetch_related('participants').get)(pk=pk)
         self.user = self.scope['user']
+        self.channel_id = str(uuid.uuid4()) #Индитификатор dataChannel для нормального переподключения
+
         await self.channel_layer.group_add(self.room_name, self.channel_name)
-        print('connected')
+
         await self.channel_layer.group_send(self.room_name, {'type': 'send_message',
                                                              'data': {
                                                                  'peer': self.user.username,
@@ -31,8 +36,16 @@ class CallConsumer(AsyncWebsocketConsumer):
         data['peer'] = self.user.username
 
         if data['action'] == 'get_peer_name':
-            data['data'] = {'peer':self.user.username, 'full_name':self.user.full_name}
+            data['data'] = {'peer':self.user.username, 'full_name':self.user.full_name, 'channel_id':self.channel_id}
             await self.channel_layer.send(self.channel_name, {'type':'send_message', 'data':data})
+        elif data['action'] == 'offer':
+            data['new_channel_id'] = self.channel_id
+            await self.channel_layer.group_send(self.room_name, {'type':'send_message', 'data':data})
+        elif data['action'] == 'answer':
+            await self.channel_layer.group_send(self.room_name, {'type':'send_message', 'data':data})
+            self.chat.call_start = datetime.datetime.now()
+            await database_sync_to_async(self.chat.save)()
+            print('answer')
         else:
             await self.channel_layer.group_send(self.room_name, {'type':'send_message', 'data':data})
 

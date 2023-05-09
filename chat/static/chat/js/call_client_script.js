@@ -9,6 +9,8 @@ let localStream;
 let remoteStream;
 let dataChannel;
 let videoTrack;
+let initializeChannelId;
+const csrftoken = getCookie('csrftoken');
 
 const config = {
     iceServers: [
@@ -21,6 +23,21 @@ const config = {
 const constraints = {
     audio: true,
     video: true
+}
+
+function getCookie(name){
+    let cookieValue = null;
+    if (document.cookie && document.cookie != ''){
+        const cookies = document.cookie.split(';');
+        for(const i = 0; i<cookies.length; i++){
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length+1) ===(name + "=")){
+                cookieValue = decodeURIComponent(cookie.substring(name.length+1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
 }
 
 clientSocket.addEventListener('message', (event)=>{
@@ -36,7 +53,7 @@ clientSocket.addEventListener('message', (event)=>{
     
     switch (message.action){
         case 'offer':
-            handlerOffer(message.data)
+            handlerOffer(message.data, message.new_channel_id);
             document.querySelector('#connection_state').style.display = 'none';
         case 'candidate':
             handlerCandidate(message.data)
@@ -47,6 +64,7 @@ clientSocket.addEventListener('message', (event)=>{
         case 'get_peer_name':
             peer = message.data.peer;
             full_name = message.data.full_name;
+            initializeChannelId = message.channel_id;
             initialize();
             break;
         case 'disconnected':
@@ -113,17 +131,15 @@ function initialize(){
 
         peerConnection.createOffer(function(offer){
         
-            peerConnection.setLocalDescription(offer);
+            peerConnection.setLocalDescription(offer)
     
             send({
                 action: 'offer',
-                data: offer
+                data: offer,
             });
     
         }, function(error){
-
-
-        console.log('createOffer error:', error)});
+            console.log('createOffer error:', error)});
 
         localVideo.srcObject = localStream;
     
@@ -132,8 +148,14 @@ function initialize(){
     }); 
 }
 
-function handlerOffer(offer){    
-    createDataChannel();
+function handlerOffer(offer, channel_id){
+    try{
+        dataChannel.close();
+    }
+    catch (error){
+        console.log(error);
+    }
+    createDataChannel(channel_id=channel_id);
     peerConnection.setRemoteDescription(offer)
         .then(() => {
             console.log('Set Remote Description', peer);
@@ -141,7 +163,7 @@ function handlerOffer(offer){
         })
         .then(answer => {
             console.log('Answer create');
-            peerConnection.setLocalDescription(answer)
+            peerConnection.setLocalDescription(answer).then(createDataChannel);
 
             send({
                 action: "answer",
@@ -176,7 +198,6 @@ document.querySelector('#audio-checkbox').addEventListener('change',(event)=>{
         event.target.checked = true;event.target.checked = true;
     }
 })
-// при подклчении не меняется
 
 document.querySelector('#video-checkbox').addEventListener('change', (event)=>{
     if (dataChannel.readyState === 'open'){
@@ -219,11 +240,19 @@ document.querySelector('#chat-input').addEventListener('keydown', (event)=>{
     }
 })
 
-function createDataChannel(){
-    console.log('createDataChannel')
-    dataChannel = peerConnection.createDataChannel("dataChannel", {
-        reliable: true
-    })
+function createDataChannel(channel_id=null){
+    console.log(channel_id);
+    if(channel_id){
+        console.log('NEW CHANNELID!!!');
+        dataChannel = peerConnection.createDataChannel(channel_id, {
+            reliable: true
+        })
+    } else {
+        dataChannel = peerConnection.createDataChannel(initializeChannelId, {
+            reliable: true
+        })
+    }
+    
 
     dataChannel.onopen = function(){
         console.log('dataChannel opened');
@@ -231,7 +260,7 @@ function createDataChannel(){
         document.querySelector('#connection_state').style.display = 'none';
     }
 
-    dataChannel.onclosing = function(){
+    dataChannel.obclose = function(){
         console.log('dataChannel closed');
         remoteVideo.srcObject = null;
     }
@@ -266,3 +295,40 @@ function createDataChannel(){
         }
     }
 }
+
+function send_call_ending_status(status){
+    console.log(`http://${window.location.host}/chat/end-call/${call_id}/`);
+    const xhr = new XMLHttpRequest();
+    let data;
+    xhr.open('POST', `http://${window.location.host}/chat/end-call/${call_id}/`);
+    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+    xhr.setRequestHeader('X-CSRFToken', csrftoken);
+    switch (status){
+        case 'complaint':
+            data = new FormData(document.querySelector('#complaint_form'));
+            break;
+        case 'review':
+            data = new FormData(document.querySelector('#complaint_form'));
+            break;
+        case 'success':
+            data = 'status=success'
+            break;
+    }
+    xhr.onload = function(event){
+        if (xhr.status !== 201){
+            return;
+        }
+        let response = JSON.parse(xhr.response);
+        console.log(response);
+        if (response.status === 'success'){
+            document.body.style.background = 'red';
+        }
+    }
+    xhr.send(data);
+}
+
+document.querySelector('#end_call_btn').addEventListener('click', send_call_ending_status('success'));
+
+document.querySelector('#review_btn').addEventListener('click', send_call_ending_status('review'));
+
+document.querySelector('complaint_btn').addEventListener('click', send_call_ending_status('review'));
