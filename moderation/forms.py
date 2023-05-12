@@ -16,5 +16,5 @@ class AddCertificationConfirmationForm(forms.ModelForm):
 
 class ComplaintForm(forms.ModelForm):
     class Meta:
-        models = Complaint
+        model = Complaint
         fields = ['cause']

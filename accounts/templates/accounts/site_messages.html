@@ -1,0 +1,12 @@
+{% extends 'doctors/base.html' %}
+{% load static %}
+{% block content %}
+<div class="">
+    {% for message in messages %}
+    <div class="message_item" style="border: 1px solid grey">
+        <span>{{ message.datetime }}: </span><br>
+        <p>{{ message.message }}</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

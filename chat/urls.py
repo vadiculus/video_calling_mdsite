@@ -11,5 +11,6 @@ urlpatterns = [
     path('administration-chat-list/', views.admin_chat_list_view, name='admin_chat_list'),
     path('ordered-call/<uuid:pk>/', views.ordered_call_view, name='ordered_call'),
     path('calendar/ordered_calls/', views.ordered_call_list, name='ordered_call_list'),
-    path('end-call/<uuid:pk>/', views.end_call, name='end_call')
+    path('end-call/<uuid:pk>/', views.end_call, name='end_call'),
+    path('total-price/<uuid:pk>/', views.show_price, name='show_price')
 ]

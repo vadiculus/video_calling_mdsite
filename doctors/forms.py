@@ -2,7 +2,9 @@ from django import forms
 from .models import Qualification, Doctor, Review
 
 class DoctorSearchForm(forms.ModelForm):
-
+    qualifications = forms.ModelMultipleChoiceField(required=False,
+                                                    queryset=Qualification.objects.all(),
+                                                    widget=forms.CheckboxSelectMultiple())
     class Meta:
         model = Doctor
         fields = ['qualifications', 'rating']
@@ -10,4 +12,4 @@ class DoctorSearchForm(forms.ModelForm):
 class ReviewForm(forms.ModelForm):
     class Meta:
         model = Review
-        fields = ['rating']
+        fields = ['rating', 'review']

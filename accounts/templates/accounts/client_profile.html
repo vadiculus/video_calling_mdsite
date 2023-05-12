@@ -9,8 +9,22 @@
         width:100px;
         height: 100px">
 </div>
+{% else %}
+<div class="user_photo" style="background: url({% static 'accounts/img/user_icon.png' %}) center no-repeat;
+        background-size: auto 100%;
+        border-radius: 100%;
+        width:100px;
+        height: 100px">
+</div>
 {% endif %}
+<br>
 <span>{{ page_user.full_name }}</span>
+{% if user.is_superuser and page_user.is_superuser %}
+<span>Администратор</span><br>
+{% endif %}
+{% if user.is_superuser and not page_user.is_superuser  %}
+<a href="{% url 'moderation:make_user_admin' page_user.username %}">Сделать администратором</a><br>
+{% endif %}
 
 {% if user == page_user %}
 <a href="{% url 'paynament:top_up_balance' %}">Пополнить баланс</a>

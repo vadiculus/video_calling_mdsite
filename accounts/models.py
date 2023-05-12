@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+import datetime
 
 class User(AbstractUser):
     full_name = models.CharField(max_length=150, verbose_name='ФИО')
@@ -21,3 +22,9 @@ class Client(models.Model):
     class Meta:
         verbose_name = 'Клиент'
         verbose_name_plural = 'Клиенты'
+
+class SiteMessage(models.Model):
+    message = models.TextField()
+    recipient = models.ForeignKey(User, on_delete=models.CASCADE)
+    read = models.BooleanField(default=False, blank=True)
+    datetime = models.DateTimeField(auto_now_add=True)

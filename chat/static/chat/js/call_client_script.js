@@ -10,7 +10,10 @@ let remoteStream;
 let dataChannel;
 let videoTrack;
 let initializeChannelId;
+const endTimeStr = JSON.parse(document.querySelector('#call_end_time').textContent);
+const endTime = new Date(endTimeStr);
 const csrftoken = getCookie('csrftoken');
+let timer;
 
 const config = {
     iceServers: [
@@ -39,6 +42,29 @@ function getCookie(name){
     }
     return cookieValue;
 }
+
+function end_call(){
+    peerConnection.close();
+    dataChannel.close();
+    document.querySelector('#call_interface_container').style.display = 'none';
+    document.querySelector('#call_end_info').style.display = 'block';
+}
+
+function Timer(){
+    if (new Date > endTime){
+        clearInterval(timer);
+        end_call()
+    } else {
+        let date = new Date();
+        let timestamp = Math.floor((endTime - date) / 1000);
+        let hours = Math.floor(timestamp / 60 / 60);
+        let minutes = Math.floor(timestamp / 60) - (hours * 60);
+        let seconds = timestamp % 60;
+        document.querySelector('#timer').innerHTML = 'Время до конца: ' + hours + ':' + minutes + ':' + seconds; 
+    }
+}
+
+timer = setInterval(Timer, 1000);
 
 clientSocket.addEventListener('message', (event)=>{
     message = JSON.parse(event['data']);
@@ -69,7 +95,7 @@ clientSocket.addEventListener('message', (event)=>{
             break;
         case 'disconnected':
             remoteVideo.srcObject = null;
-            console.log('Disconnected!')
+            console.log('Disconnected!');
             document.querySelector('#connection_state').style.display = 'block';
             document.querySelector('#interlocutor_microphone_state').style.visibility = 'hidden'
             dataChannel.close();
@@ -77,6 +103,9 @@ clientSocket.addEventListener('message', (event)=>{
         case 'connected':
             console.log('Connected!')
             document.querySelector('#connection_state').style.display = 'none';
+            break;
+        case 'complaint':
+            // window.location.href = `http://${window.location.host}/moderation/complaint_info/accused/`;
             break;
     }
 });
@@ -217,8 +246,9 @@ document.querySelector('#video-checkbox').addEventListener('change', (event)=>{
     }
 })
 
-document.querySelector('#send-msg-button').addEventListener('click', ()=>{
+document.querySelector('#send-msg-btn').addEventListener('click', ()=>{
     let message = document.querySelector('#chat-input');
+    console.log(dataChannel.readyState === 'open');
     if (dataChannel.readyState === 'open'){
         console.log(message.value)
         dataChannel.send(JSON.stringify({
@@ -236,7 +266,7 @@ document.querySelector('#send-msg-button').addEventListener('click', ()=>{
 
 document.querySelector('#chat-input').addEventListener('keydown', (event)=>{
     if (event.keyCode === 13){
-        document.querySelector('#send-msg-button').click();
+        document.querySelector('#send-msg-btn').click();
     }
 })
 
@@ -260,7 +290,7 @@ function createDataChannel(channel_id=null){
         document.querySelector('#connection_state').style.display = 'none';
     }
 
-    dataChannel.obclose = function(){
+    dataChannel.onclose = function(){
         console.log('dataChannel closed');
         remoteVideo.srcObject = null;
     }
@@ -286,49 +316,91 @@ function createDataChannel(channel_id=null){
                 }
                 break;
 
+            case 'end_call':
+                break;
+
             case 'message':
                 let chat_log = document.querySelector('#chat-log');
                 let message_item = document.createElement('li');
                 message_item.textContent = `${data.full_name}: ${data.message}`;
                 chat_log.append(message_item);
                 break;
+                
+            case 'complaint':
+                window.location.href = `http://${window.location.host}/moderation/complaint-info/accused/`;
+                break;
+            case 'call_end':
+                end_call();
+                break;
         }
     }
 }
 
 function send_call_ending_status(status){
-    console.log(`http://${window.location.host}/chat/end-call/${call_id}/`);
     const xhr = new XMLHttpRequest();
-    let data;
+    let data = {};
     xhr.open('POST', `http://${window.location.host}/chat/end-call/${call_id}/`);
-    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+    xhr.setRequestHeader('Content-Type', 'application/json');
     xhr.setRequestHeader('X-CSRFToken', csrftoken);
+    xhr.setRequestHeader('x-requested-with', 'XMLHttpRequest');
     switch (status){
         case 'complaint':
-            data = new FormData(document.querySelector('#complaint_form'));
+            data['status'] = 'complaint';
+            for (const input of document.querySelector('#complaint_form').elements){
+                data[input.name] = input.value;
+            }
             break;
         case 'review':
-            data = new FormData(document.querySelector('#complaint_form'));
+            data['status'] = 'review';
+            for (const input of document.querySelector('#review_form').elements){
+                data[input.name] = input.value;
+            }
             break;
         case 'success':
-            data = 'status=success'
+            data['status'] = 'success';
             break;
     }
-    xhr.onload = function(event){
-        if (xhr.status !== 201){
-            return;
-        }
-        let response = JSON.parse(xhr.response);
-        console.log(response);
-        if (response.status === 'success'){
-            document.body.style.background = 'red';
+    data = JSON.stringify(data);
+    console.log(data);
+    xhr.onreadystatechange  = function(){
+        if (xhr.readyState == XMLHttpRequest.DONE){
+            response = JSON.parse(xhr.response);
+            console.log(xhr.response);
+            if (response.status === 'success'){
+                dataChannel.send(JSON.stringify({
+                    action: 'call_end',
+                }));
+                window.location.href = `http://${window.location.host}/accounts/site-messages/`;
+            }
+            if (response.status === 'success complaint'){
+                dataChannel.send(JSON.stringify({
+                    action: 'complaint',
+                }));
+                send({
+                    action:'complaint'
+                })
+                window.location.href = `http://${window.location.host}/moderation/complaint-info/initiator/`;
+            }
         }
     }
     xhr.send(data);
 }
 
-document.querySelector('#end_call_btn').addEventListener('click', send_call_ending_status('success'));
+document.querySelector('#end_call_btn').addEventListener('click', (event)=> {
+    console.log(event.target);
+    document.querySelector('#end_call_question').style.display = 'block';
+});
 
-document.querySelector('#review_btn').addEventListener('click', send_call_ending_status('review'));
+let review_btn = document.querySelector('#review_btn');
 
-document.querySelector('complaint_btn').addEventListener('click', send_call_ending_status('review'));
+
+if (review_btn){
+    review_btn.addEventListener('click', (event)=> {
+        send_call_ending_status('review')
+    });
+}
+
+document.querySelector('#complaint_btn').addEventListener('click', (event)=> {
+    console.log('bebra')
+    send_call_ending_status('complaint')
+});

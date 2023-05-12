@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from django.views.generic import CreateView, UpdateView
-from accounts.models import User
+from accounts.models import User, SiteMessage
 from .forms import (RegisterClientForm,
                     RegisterDoctorForm,
                     RegisterUserForm,
@@ -24,6 +24,7 @@ from calendars.forms import VisitingTimeForm
 from paynament.models import Balance
 from doctors.utils import require_clients
 import datetime
+from django.conf import settings
 
 class RegisterClientView(CreateView):
     '''Регистрация клиента'''
@@ -113,18 +114,18 @@ def profile(request, username):
             #     Prefetch('doctor', Doctor.objects.prefetch_related('visiting_time'))),
             #     username=username)
             if user == request.user:
-                calendar = user.doctor.visiting_time.annotate(day=TruncDay('time'))\
+                calendar = user.doctor.visiting_time.filter(time__gt=datetime.datetime.utcnow()).annotate(day=TruncDay('time'))\
                     .values('day','id', 'time', 'is_booked')
             else:
-                calendar = user.doctor.visiting_time.annotate(day=TruncDay('time'))\
+                calendar = user.doctor.visiting_time.filter(time__gt=datetime.datetime.utcnow()).annotate(day=TruncDay('time'))\
                     .filter(is_booked=False)\
                     .values('day', 'id', 'time', 'is_booked')
             calendar_dict = {}
             for day in calendar:
                 if day['day'] in calendar_dict:
-                    calendar_dict[day['day']].append({'id':day['id'], 'time':day['time'], 'is_booked':day['is_booked']})
+                    calendar_dict[str(day['day'])].append({'id':day['id'], 'time':str(day['time']), 'is_booked':day['is_booked']})
                 else:
-                    calendar_dict[day['day']] = [{'id':day['id'], 'time':day['time'], 'is_booked':day['is_booked']}]
+                    calendar_dict[str(day['day'])] = [{'id':day['id'], 'time':str(day['time']), 'is_booked':day['is_booked']}]
             return render(request,'accounts/doctor_profile.html', {'page_user':user,
                                                                    'calendar':calendar_dict,
                                                                    'visiting_time_form':VisitingTimeForm()})
@@ -189,13 +190,16 @@ def buy_premium_account(request):
     user = request.user
     if request.method == 'POST':
         if user.balance.balance >= 50:
-            with transaction.atomic():
-                user.balance.balance -= 50
-                user.client.is_premium = True
-                user.client.save()
-                user.balance.save()
+            user.client.is_premium = True
+            user.client.save()
             return redirect('accounts:profile', username=request.user.username)
         title = 'У вас недостаточно средсв для покупки'
         return render(request, 'errors/some_error.html', {'title':title})
     return render(request, 'accounts/buy_premium_account.html')
+
+def site_messages(request):
+    if request.user.is_authenticated:
+        messages = SiteMessage.objects.filter(recipient=request.user)
+        return render(request, 'accounts/site_messages.html', {'messages':messages})
+    raise Http404
 

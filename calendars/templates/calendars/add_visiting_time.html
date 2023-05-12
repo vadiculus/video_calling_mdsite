@@ -5,8 +5,18 @@
 Время: {{ visiting_time.time }}<br>
 Максимальная продолжительность звонка: {{ visiting_time.max_time }}<br>
 <form method="post" enctype="multipart/form-data">
+    <ul>
+    {% for error in errors %}
+        <li>{{ error }}</li>
+    {% endfor %}
+    </ul>
     {% csrf_token %}
     {{ form.as_p }}
     <button type="submit">Забронировать</button>
 </form>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'calendars/js/timezone_script.js' %}"></script>
 {% endblock %}

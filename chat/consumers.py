@@ -6,12 +6,15 @@ from .models import PremiumChat, PremiumChatMessage, AdminChat, AdminChatMessage
 import json
 from asgiref.sync import sync_to_async
 import uuid
+import pytz
 
 class CallConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         pk = self.scope["url_route"]["kwargs"]['call_id']
         self.room_name = f'call.{pk}'
-        self.chat = await database_sync_to_async(OrderedCall.objects.prefetch_related('participants').get)(pk=pk)
+        self.chat = await database_sync_to_async(OrderedCall.objects.
+                                                 select_related('visiting_time').
+                                                 prefetch_related('participants').get)(pk=pk)
         self.user = self.scope['user']
         self.channel_id = str(uuid.uuid4()) #Индитификатор dataChannel для нормального переподключения
 
@@ -43,9 +46,8 @@ class CallConsumer(AsyncWebsocketConsumer):
             await self.channel_layer.group_send(self.room_name, {'type':'send_message', 'data':data})
         elif data['action'] == 'answer':
             await self.channel_layer.group_send(self.room_name, {'type':'send_message', 'data':data})
-            self.chat.call_start = datetime.datetime.now()
-            await database_sync_to_async(self.chat.save)()
-            print('answer')
+            if not self.chat.call_start:
+                await database_sync_to_async(self.chat.set_call_start)(datetime.datetime.utcnow())
         else:
             await self.channel_layer.group_send(self.room_name, {'type':'send_message', 'data':data})
 

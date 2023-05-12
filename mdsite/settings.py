@@ -136,3 +136,7 @@ CHANNEL_LAYERS = {
         },
     },
 }
+
+SITE_PERCENT = {
+    'value': 3,
+}

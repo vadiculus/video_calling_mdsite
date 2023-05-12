@@ -5,7 +5,24 @@
 
 {% if chats %}
 {% for chat in chats %}
-<a href="{% url 'chat:premium_chat' chat.id %}">{{ chat|get_interlocutor:user }}</a>
+{% with interlocutor=chat|get_interlocutor:user %}
+{% if interlocutor.photo %}
+<div class="user_photo" style="background: url({{ interlocutor.photo.url }}) center no-repeat;
+            background-size: auto 100%;
+            border-radius: 100%;
+            width:50px;
+            height: 50px">
+</div>
+{% else %}
+<div class="user_photo" style="background: url({% static 'accounts/img/user_icon.png' %}) center no-repeat;
+            background-size: auto 100%;
+            border-radius: 100%;
+            width:50px;
+            height: 50px">
+    </div>
+{% endif %}
+<a href="{% url 'chat:admin_chat' chat.id %}">{{ chat|get_interlocutor:user }} {{ chat|not_read_admin_messages:user }}</a>
+{% endwith %}
 <br>
 {% endfor %}
 {% else %}

@@ -9,9 +9,12 @@ from django.views.generic import CreateView
 from .forms import AddCertificationConfirmationForm
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
-from accounts.models import User
+from accounts.models import User, SiteMessage
 from doctors.utils import require_doctors
 from django.urls import reverse_lazy
+from chat.models import OrderedCall
+from django.db import transaction
+from django.shortcuts import redirect
 
 from .utils import require_not_banned
 
@@ -64,7 +67,37 @@ class AddCertificationConfirmationView(CreateView):
 
         return HttpResponseRedirect(self.get_success_url())
 
+def complaint_info(request, status):
+    body = 'В ближайшее время вам напишет администрация сайта чтобы решить вашу проблему'
+    if status == 'accused':
+        title = 'На вас была подана жалоба'
+        return render(request, 'errors/text_page.html', {'title': title, 'body': body})
+    elif status == 'initiator':
+        title = 'Жалоба была успешно подана'
+        return render(request, 'errors/text_page.html', {'title': title, 'body':body})
+    else:
+        pass
+        # raise Http404
 
+def transfer_money(request, pk):
+    '''Решение вопроса жалобы'''
+    call = get_object_or_404(OrderedCall.objects.prefetch_related('participants'), pk=pk)
+    if request.user.is_superuser:
+        with transaction.atomic():
+            call.transfer_money()
+            call.ordered_call_complaint.solved = True
+            doctor_message = f'Ваша проблема была решена. На ваш счет было переведено {round(call.get_price(), 2)} фантиков.'
+            SiteMessage.objects.create(recipient=call.get_doctor(),
+                                       message=doctor_message)
+            call.ordered_call_complaint.save()
+            call.delete()
+        return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
+    raise Http404
 
-
-
+def make_user_admin(request, username):
+    user = get_object_or_404(User, username=username)
+    if request.user.is_superuser:
+        user.is_superuser = True
+        user.save()
+        return redirect('accounts:profile', username)
+    raise Http404

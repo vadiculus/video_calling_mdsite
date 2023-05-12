@@ -27,7 +27,16 @@ class Complaint(models.Model):
     accused = models.ForeignKey(User, related_name='accused_complaints', on_delete=models.CASCADE, verbose_name='Обвиняемый')
     initiator = models.ForeignKey(User, related_name='initiator_complaints', on_delete=models.PROTECT, verbose_name='Инициатор')
     cause = models.CharField(max_length=150, verbose_name='Причина')
-    ordered_call = models.ForeignKey(OrderedCall, null=True, blank=True, on_delete=models.PROTECT, verbose_name='Звонок')
+    ordered_call = models.OneToOneField(OrderedCall,
+                                        related_name='ordered_call_complaint',
+                                        null=True, blank=True,
+                                        on_delete=models.CASCADE,
+                                        verbose_name='Звонок')
+
+    solved = models.BooleanField(default=False, blank=True)
+
+    def get_doctor(self):
+        return self.accused if self.accused.is_doctor else self.initiator
 
     class Meta:
         verbose_name = 'Жалоба'

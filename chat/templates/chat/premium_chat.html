@@ -2,6 +2,22 @@
 {% load static %}
 {% block content %}
 
+{% if interlocutor.photo %}
+<div class="user_photo" style="background: url({{ interlocutor.photo.url }}) center no-repeat;
+            background-size: auto 100%;
+            border-radius: 100%;
+            width:70px;
+            height: 70px">
+</div><a href="{% url 'chat:premium_chat' chat.id %}">{{ interlocutor.full_name }}</a>
+<br>
+{% else %}
+<div class="user_photo" style="background: url({% static 'accounts/img/user_icon.png' %}) center no-repeat;
+            background-size: auto 100%;
+            border-radius: 100%;
+            width:70px;
+            height: 70px">
+    </div>
+{% endif %}
 <a href="{% url 'accounts:profile' interlocutor.username %}"><h2>{{ interlocutor.full_name }}</h2></a>
 
 

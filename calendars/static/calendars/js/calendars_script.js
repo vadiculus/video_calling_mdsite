@@ -1,0 +1,23 @@
+let calendar_data = JSON.parse(document.querySelector('#calendar_script').textContent);
+let calendar_container = document.querySelector('#calendar_container');
+
+console.log(calendar_data);
+
+for (const day of Object.keys(calendar_data)){
+    let day_element = document.createElement('div');
+    day_element.classList.add('calendar_day_item')
+    let date = new Date(day);
+    day_element.innerHTML = `${date.getDate()}.${date.getMonth() + 1}.${date.getFullYear()}`;
+    for (const time of calendar_data[day]){
+        console.log(time);
+        let time_element = document.createElement('a');
+        time_element.href = `http://${window.location.host}/calendars/book-a-call/${time.id}/`;
+        let time_date = new Date(time.time);
+        let hour = time_date.getHours() < 10 ? '0' + time_date.getHours() : time_date.getHours();
+        let minute = time_date.getMinutes() < 10 ? '0' + time_date.getMinutes() : time_date.getMinutes();
+        time_element.innerHTML = `${hour}:${minute}`;
+        day_element.append(time_element)
+    }
+    calendar_container.append(day_element);
+
+}

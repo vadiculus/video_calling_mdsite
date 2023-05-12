@@ -1,6 +1,11 @@
 from django.contrib import admin
 from .models import CertificationConfirmation, Complaint
 from django.utils.safestring import mark_safe
+from django.db import models
+from django.conf import settings
+from django.shortcuts import reverse
+from django.urls import reverse_lazy
+
 
 class CertificationConfirmationAdmin(admin.ModelAdmin):
     readonly_fields = ['photos']
@@ -29,7 +34,16 @@ class CertificationConfirmationAdmin(admin.ModelAdmin):
     photos.short_description = 'Фото сертифифкатов'
 
 
+class ComplaintAdmin(admin.ModelAdmin):
+    change_form_template = 'moderation/admin/complaint_change_form.html'
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_add_permission(self, request):
+        return False
+
+
 
 admin.site.register(CertificationConfirmation, CertificationConfirmationAdmin)
-admin.site.register(Complaint)
+admin.site.register(Complaint, ComplaintAdmin)
 

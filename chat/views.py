@@ -3,7 +3,7 @@ from .models import PremiumChat, PremiumChatMessage, AdminChatMessage, AdminChat
 from django.http import Http404, JsonResponse
 from accounts.models import User
 from doctors.utils import require_premium_and_doctors, require_not_superusers
-from django.db.models import Prefetch
+from django.db.models import Prefetch, Q
 from moderation.utils import require_not_banned
 from django.contrib.auth.views import login_required
 from django.views.decorators.cache import never_cache
@@ -13,8 +13,13 @@ from django.db import transaction
 from django.db.models import Prefetch
 from doctors.forms import ReviewForm
 from moderation.forms import ComplaintForm
+from doctors.models import Review
+from mdsite.utils import server_tz
+from mdsite.settings import TIME_ZONE
+from accounts.models import SiteMessage
 import pytz
 import datetime
+import json
 
 @require_not_superusers
 @require_premium_and_doctors
@@ -50,6 +55,7 @@ def admin_chat(request, chat_id):
     chat = get_object_or_404(AdminChat.objects.prefetch_related(
         Prefetch('admin_chat_messages', AdminChatMessage.objects.select_related('author'))), pk=chat_id)
     chat_messages = chat.admin_chat_messages.all()
+    chat.admin_chat_messages.filter(~Q(author=request.user) & Q(read=False)).update(read=True)
     if request.user.is_authenticated:
         if request.user not in chat.participants.all():
             title = 'У вас нету доступа к этом чату'
@@ -108,6 +114,8 @@ def admin_chat_list_view(request):
 @never_cache
 def ordered_call_view(request, pk):
     ordered_call = get_object_or_404(OrderedCall.objects.select_related('visiting_time'), pk=pk)
+    if ordered_call.is_ended:
+        raise Http404
     if ordered_call.is_active():
         interlocutor = ordered_call.get_interlocutor(request.user)
         return render(request, 'chat/ordered_call.html', {
@@ -115,6 +123,7 @@ def ordered_call_view(request, pk):
             'call':ordered_call,
             'interlocutor': interlocutor,
             'review_form': ReviewForm(),
+            'complaint_form': ComplaintForm(),
         })
     else:
         if request.user.is_doctor:
@@ -129,7 +138,7 @@ def ordered_call_view(request, pk):
 @require_not_banned
 def ordered_call_list(request):
     ordered_calls = OrderedCall.objects.select_related('visiting_time')\
-        .prefetch_related('participants').filter(participants__id=request.user.id)
+        .prefetch_related('participants').filter(Q(participants__id=request.user.id, is_success=False, is_ended=False))
     return render(request, 'chat/ordered_call_list.html', {'calls':ordered_calls})
 
 @require_POST
@@ -137,38 +146,66 @@ def end_call(request, pk):
     call = get_object_or_404(OrderedCall.objects.prefetch_related(
         Prefetch('participants', User.objects.select_related('balance'))
     ), pk=pk)
-    client, doctor = call.get_client(), call.get_doctor()
-    initiator = request.user
-    call_end_type = request.POST.get('status')
+    if not call.is_success and request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        client, doctor = call.get_client(), call.get_doctor()
+        initiator = request.user
+        data = json.loads(request.body)
+        call_end_type = data.get('status')
 
-    if initiator not in call.participants.all():
-        return JsonResponse({'status': 'no permissions'})
+        if initiator not in call.participants.all():
+            return JsonResponse({'status': 'no permissions'})
 
-    def money_transfer():
-        with transaction.atomic():
-            client.balance.balance -= call.get_price() + call.get_percent()
-            doctor.balance.balance += call.get_price()
-            client.balance.save()
-            doctor.balance.save()
+        call.call_end = datetime.datetime.utcnow()
 
-    if call_end_type == 'success':
-        money_transfer()
-        return JsonResponse({'status':'success'})
+        def money_transfer():
+            with transaction.atomic():
+                call.is_ended = True
+                call.call_end = datetime.datetime.now(pytz.utc)
+                call.save()
+                price = call.get_price()
+                client.balance.balance -= call.get_total_price()
+                doctor.balance.balance += price
+                message = f'Звонок был успешно проведен. С вашего счета была сснята сумма: {call.get_total_price()} Фантиков'
+                SiteMessage.objects.create(recipient=request.user,
+                                           message=message)
+                client.balance.save()
+                doctor.balance.save()
+                call.visiting_time.delete()
 
-    if call_end_type == 'review':
-        if not initiator.is_doctor:
-            review_form = ReviewForm(request.POST)
-            if review_form.is_valid():
-                review = review_form.save(commit=False)
-                review.client = request.user.client
-                money_transfer()
+        if call_end_type == 'success':
+            call.is_ended = True
+            call.save()
             return JsonResponse({'status':'success'})
 
-    if call_end_type == 'complaint':
-        complaint_form = ReviewForm(request.POST)
-        if complaint_form.is_valid():
-            complaint = complaint_form.save(commit=False)
-            complaint.initiator = initiator
-            complaint.accused = call.get_interlocutor(initiator)
-        return JsonResponse({'status':'success'})
-    return JsonResponse({'status': 'success'})
+        if call_end_type == 'review':
+            if not initiator.is_doctor:
+                review_form = ReviewForm(data)
+                if review_form.is_valid():
+                     Review.objects.update_or_create(client=client.client, doctor=doctor.doctor,
+                                                    defaults=review_form.cleaned_data)
+                money_transfer()
+
+                return JsonResponse({'status':'success'})
+
+        if call_end_type == 'complaint':
+            complaint_form = ComplaintForm(data)
+            if complaint_form.is_valid():
+                with transaction.atomic():
+                    call.is_ended = True
+                    complaint = complaint_form.save(commit=False)
+                    complaint.initiator = initiator
+                    complaint.accused = call.get_interlocutor(initiator)
+                    complaint.ordered_call = call
+                    complaint.save()
+                    call.save()
+                    message = 'На вас подали жалобу. В ближайшее время вам напишет администрация чтобы решить проблему.'
+                    SiteMessage.objects.create(recipient=complaint.accused,
+                                               message=message)
+                    return JsonResponse({'status':'success complaint'})
+    else:
+        return JsonResponse({'status': 'No xhr request'})
+
+def show_price(request, pk):
+    call = get_object_or_404(OrderedCall.objects.prefetch_related('participants'), pk=pk)
+    total_price = call.get_total_price()
+    return render(request, 'chat/show_price.html', {'total_price':total_price})

@@ -10,7 +10,7 @@
         height: 100px">
 </div>
 {% else %}
-<div class="user_photo" style="background: url({% static 'accounts/img/user_icon.png' %}}) center no-repeat;
+<div class="user_photo" style="background: url({% static 'accounts/img/user_icon.png' %}) center no-repeat;
         background-size: auto 100%;
         border-radius: 100%;
         width:100px;
@@ -33,14 +33,19 @@
 <a href="{% url 'accounts:add_certification_confirmation' %}">Добавить квалификацию</a>
 <a href="{% url 'accounts:change_password' %}">Изменить пароль</a><br>
 {% elif user.is_superuser %}
-<a href="{% url 'chat:create_chat' page_user.username %}">Написать</a><br>
 <a href="{% url 'accounts:ban' page_user.username %}">Заблокировать</a><br>
+{% endif %}
+
+{% if page_user.doctor.rating %}
+<span>Рейтинг: {{ page_user.doctor.rating }}</span><br> <br>
+{% else %}
+<span>Никто не оценивал</span><br><br>
 {% endif %}
 
 
 {% if user.is_authenticated %}
 {% if not user.is_doctor  %}
-{% if user.client.is_premium %}
+{% if user.client.is_premium or user.is_superuser %}
 <a href="{% url 'chat:create_chat' page_user.username %}">Написать</a><br>
 {% else %}
 <p>Чтобы написать доктору вы должны <a href="{% url 'accounts:buy_premium_account' %}">купить пермиум аккаунт</a></p>
@@ -48,27 +53,19 @@
 {% endif %}
 {% endif %}
 
-{% if calendar %}
+<div id="calendar_container">
 
-{% for day, time in calendar.items %}
-day: {{ day | date:'d.m.Y' }}<br>
-{% for timestamp in time %}
-{% if timestamp.is_booked %}
-<span style="color: red">{{ timestamp.time | time:'H:i' }}</span>
-{% else %}
-<a href="{% url 'calendars:book_call' timestamp.id %}">{{ timestamp.time | time:'H:i' }}</a>
-{% endif %}
-{% endfor %}
-<br>
-{% endfor %}
-<br>
+</div><br>
+
+{% if page_user == user %}
 <a href="{% url 'calendars:create_visiting_time' %}">Добавить время для визита</a><br>
-{% else %}
-{% if page_user != user %}
-У доктора пока что нету сввободного времени.
-{% else %}
-У вас нету свободного времени
-{% endif %}
 {% endif %}
 
+{% endblock %}
+
+{% block scripts %}
+{% if calendar %}
+{{ calendar|json_script:"calendar_script" }}
+{% endif %}
+<script src="{% static 'calendars/js/calendars_script.js' %}"></script>
 {% endblock %}
