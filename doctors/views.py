@@ -1,8 +1,11 @@
 from django.shortcuts import render
+from django.template.loader import render_to_string
 from django.views.generic import ListView
 from doctors.models import Doctor
 from .forms import DoctorSearchForm
 from django.db.models import Q
+from moderation.tasks import send_confirmation_mail
+from django.conf import settings
 
 def index(request):
     return render(request, 'doctors/doctor_search_page.html')

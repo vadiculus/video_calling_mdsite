@@ -19,7 +19,7 @@
 {% endif %}
 <br>
 <span>{{ page_user.full_name }}</span>
-{% if user.is_superuser and page_user.is_superuser %}
+{% if user.is_staff and page_user.is_staff %}
 <span>Администратор</span><br>
 {% endif %}
 {% if user.is_superuser and not page_user.is_superuser  %}

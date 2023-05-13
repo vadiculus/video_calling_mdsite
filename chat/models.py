@@ -15,6 +15,9 @@ from mdsite.utils import server_tz
 from django.db.models import Q
 from django.db import transaction
 
+from paynament.models import SiteBalance
+
+
 class OrderedCall(models.Model):
     id = models.UUIDField(default=uuid.uuid4, primary_key=True, editable=True)
     visiting_time = models.OneToOneField(VisitingTime, null=True,
@@ -39,21 +42,22 @@ class OrderedCall(models.Model):
         # return visiting_time < utc.localize(datetime.datetime.now()) < call_end
         return True
 
-    def transfer_money(self):
-        doctor = self.get_doctor()
-        client = self.get_client()
-        doctor.balance.balance += self.get_price()
-        client.balance.balance -= self.get_total_price()
+    def transfer_money(self, client=None, doctor=None, site_balance=None):
+        if not (client or doctor):
+            doctor = self.get_doctor()
+            client = self.get_client()
+        doctor.balance.balance += self.get_price(doctor)
+        client.balance.balance -= self.get_total_price(doctor, site_balance)
         doctor.balance.save()
         client.balance.save()
 
     def end_time(self):
         return str(self.visiting_time.time + datetime.timedelta(minutes=self.visiting_time.max_time))
 
-    def get_price(self):
+    def get_price(self, doctor):
         '''Получает цену. Человек распалачивается не поминутно,
         а за каждый дополнительный отрезок времени'''
-        doctor = self.get_doctor().doctor
+        doctor = doctor.doctor
         minutes_step = 20 # Отрезок времени
         minimal_percent = round(minutes_step / 60 * 100, 2) / 100 * round(float(doctor.service_cost), 2)
         if not self.call_start:
@@ -70,12 +74,13 @@ class OrderedCall(models.Model):
                     price = (timestamp_count + 1) * minimal_percent
                 return Decimal(round(price, 2))
 
-    def get_percent(self):
-        percent = self.get_price() / 100 * 5
-        return percent
+    def get_percent(self, doctor, site_balance):
+        time_difference = (self.visiting_time.time_end - self.visiting_time.time).total_seconds() / 60
+        percent = Decimal(time_difference / 60) * (Decimal(doctor.doctor.service_cost) / 100 * site_balance.percent)
+        return Decimal(round(percent, 2))
 
-    def get_total_price(self):
-        return round(self.get_price() + self.get_percent(), 2)
+    def get_total_price(self, doctor, site_balance):
+        return round(self.get_price(doctor) + self.get_percent(doctor, site_balance), 2)
 
     def get_client(self):
         return self.participants.select_related('client', 'balance').get(is_doctor=False)

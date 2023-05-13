@@ -1,8 +1,11 @@
+import datetime
+
 from django.db import models
 from django.contrib.postgres.fields import ArrayField
 from doctors.models import Doctor
 from django.core.validators import MaxValueValidator, MinValueValidator
 from decimal import Decimal
+from paynament.models import SiteBalance
 
 class VisitingTime(models.Model):
     doctor = models.ForeignKey(Doctor, related_name='visiting_time', on_delete=models.CASCADE, verbose_name='Доктор')
@@ -16,9 +19,12 @@ class VisitingTime(models.Model):
         return price
 
     def get_percent(self):
-        percent = self.get_price() / 100 * 5
-        return percent
+        site_balance = SiteBalance.objects.get(pk=1)
+        time_difference = (self.time_end - self.time).total_seconds() / 60
+        percent = self.doctor.service_cost / 100 * float(site_balance.percent) * time_difference / 60
+        return round(percent, 2)
 
     def get_total_price(self):
-        return self.get_price() + self.get_percent()
+        print(self.get_percent())
+        return round(self.get_price() + self.get_percent(), 2)
 

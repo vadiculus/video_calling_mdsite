@@ -16,7 +16,8 @@ from moderation.forms import ComplaintForm
 from doctors.models import Review
 from mdsite.utils import server_tz
 from mdsite.settings import TIME_ZONE
-from accounts.models import SiteMessage
+from paynament.models import SiteBalance
+from .tasks import send_user_mail
 import pytz
 import datetime
 import json
@@ -155,37 +156,38 @@ def end_call(request, pk):
         if initiator not in call.participants.all():
             return JsonResponse({'status': 'no permissions'})
 
-        call.call_end = datetime.datetime.utcnow()
+        call.call_end = datetime.datetime.now(pytz.utc)
+        call.save()
+        site_balance = SiteBalance.objects.get(pk=1)
+        percent = call.get_percent(doctor, site_balance)
+        price = call.get_price(doctor)
+        total_price = call.get_total_price(doctor, site_balance)
 
         def money_transfer():
             with transaction.atomic():
-                call.is_ended = True
-                call.call_end = datetime.datetime.now(pytz.utc)
-                call.save()
-                price = call.get_price()
-                client.balance.balance -= call.get_total_price()
+                client.balance.balance -= total_price
+                site_balance.balance += call.get_percent(doctor, site_balance)
                 doctor.balance.balance += price
-                message = f'Звонок был успешно проведен. С вашего счета была сснята сумма: {call.get_total_price()} Фантиков'
-                SiteMessage.objects.create(recipient=request.user,
-                                           message=message)
-                client.balance.save()
-                doctor.balance.save()
+                title = 'Успешный звонок!'
+                body = f'Звонок был успешно проведен. С вашего счета была сснята сумма: {total_price} фантиков'
+                send_user_mail.delay(client.email, title, body)
+                site_balance.save(), client.balance.save(), doctor.balance.save(),
                 call.visiting_time.delete()
+                return body
 
         if call_end_type == 'success':
-            call.is_ended = True
-            call.save()
-            return JsonResponse({'status':'success'})
+            message = money_transfer()
+            return JsonResponse({'status':'success', 'message': message})
 
         if call_end_type == 'review':
             if not initiator.is_doctor:
                 review_form = ReviewForm(data)
                 if review_form.is_valid():
-                     Review.objects.update_or_create(client=client.client, doctor=doctor.doctor,
+                    Review.objects.update_or_create(client=client.client, doctor=doctor.doctor,
                                                     defaults=review_form.cleaned_data)
-                money_transfer()
+                message = money_transfer()
 
-                return JsonResponse({'status':'success'})
+                return JsonResponse({'status':'success', 'message': message})
 
         if call_end_type == 'complaint':
             complaint_form = ComplaintForm(data)
@@ -196,12 +198,15 @@ def end_call(request, pk):
                     complaint.initiator = initiator
                     complaint.accused = call.get_interlocutor(initiator)
                     complaint.ordered_call = call
+                    complaint.price = price
+                    client.balance.balance -= percent
+                    site_balance.balance += percent
                     complaint.save()
-                    call.save()
-                    message = 'На вас подали жалобу. В ближайшее время вам напишет администрация чтобы решить проблему.'
-                    SiteMessage.objects.create(recipient=complaint.accused,
-                                               message=message)
-                    return JsonResponse({'status':'success complaint'})
+                    call.visiting_time.delete()
+                title = 'На вас подана жалоба'
+                body = 'На вас подали жалобу. В ближайшее время вам напишет администрация чтобы решить проблему.'
+                send_user_mail.delay(client.email, title, body)
+                return JsonResponse({'status':'success complaint'})
     else:
         return JsonResponse({'status': 'No xhr request'})
 
@@ -209,3 +214,13 @@ def show_price(request, pk):
     call = get_object_or_404(OrderedCall.objects.prefetch_related('participants'), pk=pk)
     total_price = call.get_total_price()
     return render(request, 'chat/show_price.html', {'total_price':total_price})
+
+def cancel_ordered_call(request, pk):
+    call = get_object_or_404(OrderedCall.objects.select_related('visiting_time')
+                             .prefetch_related('participants'), pk=pk)
+    if call.get_doctor() == request.user:
+        message_body = f'Врач { call.visiting_time.doctor } отменил назначеный звонок'
+        send_user_mail(call.get_client().email, 'Отмена конференции', message_body)
+        call.visiting_time.delete()
+    return redirect('accounts:profile', request.user.username)
+

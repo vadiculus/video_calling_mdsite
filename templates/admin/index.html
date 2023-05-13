@@ -1,0 +1,7 @@
+{% extends 'admin/index.html' %}
+{% block content %}
+<div class="site_balance_block">
+    <a href="{% url 'paynament:site_balance' %}">Изменить процент дохода сайта</a>
+</div><br>
+{{ block.super }}
+{% endblock %}

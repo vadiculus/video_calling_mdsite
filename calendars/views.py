@@ -16,6 +16,7 @@ from django.urls import reverse_lazy
 from django.http import Http404, HttpResponseRedirect
 import pytz
 from mdsite.utils import server_tz
+from chat.tasks import send_user_mail
 
 @require_clients
 def book_call_view(request, pk):
@@ -28,8 +29,6 @@ def book_call_view(request, pk):
     total_price_ordered_calls = sum([call.visiting_time.get_total_price() for call in ordered_calls])
 
     balance = request.user.balance.balance
-
-    print(total_price_ordered_calls)
 
     if not visiting_time.is_booked:
         if request.user.is_superuser:
@@ -74,13 +73,15 @@ class CreateVisitingTimeView(CreateView):
                 minutes=self.object.time.minute)))
         self.object.time = dt_timezone.astimezone(server_tz)
 
-        visiting_times = VisitingTime.objects.filter(Q(doctor=self.request.user.doctor) &
-                                                     (Q(time__gte=self.object.time,
-                                                       time__lte=self.object.time + datetime.timedelta(
-                                                           minutes=self.object.max_time)) |
-                                                     Q(time_end__gte=self.object.time,
-                                                       time_end__lte=self.object.time + datetime.timedelta(
-                                                           minutes=self.object.max_time))))
+        visiting_times = VisitingTime.objects.filter(doctor=self.request.user.doctor) #Отфильровать по доктору
+
+        visiting_times = visiting_times.filter(Q(time__gte=self.object.time, #По времени
+                                                   time__lte=self.object.time + datetime.timedelta(
+                                                       minutes=self.object.max_time)) |
+                                                 Q(time_end__gt=self.object.time ,
+                                                   time_end__lte=self.object.time + datetime.timedelta(
+                                                       minutes=self.object.max_time)))
+
         if not visiting_times:
             self.object.doctor = self.request.user.doctor
             self.object.time_end = self.object.time + datetime.timedelta(minutes=self.object.max_time)

@@ -36,12 +36,10 @@ class Doctor(models.Model):
         verbose_name_plural = 'Доктора'
 
 class Review(models.Model):
-    rating = models.PositiveIntegerField(blank=True,
-                                         null=True,
-                                         validators=[MaxValueValidator(5), MinValueValidator(1)],
+    rating = models.PositiveIntegerField(validators=[MaxValueValidator(5), MinValueValidator(1)],
                                          verbose_name='Оценка')
 
-    client = models.ForeignKey(Client, null=True, on_delete=models.PROTECT, verbose_name='Клиент')
+    client = models.ForeignKey(Client, null=True, on_delete=models.SET_NULL, verbose_name='Клиент')
     doctor = models.ForeignKey(Doctor, on_delete=models.CASCADE, related_name='reviews', verbose_name='Доктор')
     review = models.TextField(null=True, blank=True, verbose_name='Отзыв')
 
@@ -52,7 +50,7 @@ class Review(models.Model):
                 count = Count('id')
             )
             if reviews['count']:
-                self.doctor.rating = reviews['total_rating']/ reviews['count']
+                self.doctor.rating = reviews['total_rating'] / reviews['count']
             else:
                 self.doctor.rating = self.rating
             self.doctor.save()

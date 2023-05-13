@@ -9,9 +9,6 @@
 
 {% block submit_buttons_bottom %}
 
-{% if original.ordered_call %}
-<a href="{% url 'moderation:doctor_transfer_money' original.ordered_call.pk %}" class="blue_button" type="button" value="Подтвердить">Перевести деньги</a>
-{% endif %}
-<a href="{% url 'moderation:confirmation' original.pk 'confirmed' %}" style="color: red" class="blue_button" type="button" value="Подтвердить">Закрыть вопрос</a>
-
+<a href="{% url 'moderation:conflict_resolution' original.pk 'transfer-money' %}" class="blue_button" type="button" value="Подтвердить">Перевести деньги доктору</a>
+<a href="{% url 'moderation:conflict_resolution' original.pk 'refusal' %}" class="blue_button" type="button" value="Подтвердить">Отвергнуть</a>
 {% endblock %}

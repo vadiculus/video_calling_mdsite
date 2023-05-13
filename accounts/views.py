@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from django.views.generic import CreateView, UpdateView
-from accounts.models import User, SiteMessage
+from accounts.models import User
 from .forms import (RegisterClientForm,
                     RegisterDoctorForm,
                     RegisterUserForm,
@@ -25,6 +25,7 @@ from paynament.models import Balance
 from doctors.utils import require_clients
 import datetime
 from django.conf import settings
+from chat.tasks import send_user_mail
 
 class RegisterClientView(CreateView):
     '''Регистрация клиента'''
@@ -36,6 +37,9 @@ class RegisterClientView(CreateView):
         self.object = form.save()
         Balance.objects.create(user=self.object)
         login(self.request, self.object)
+        title = 'Добро пожаловать на наш сайт!'
+        body = ''
+        send_user_mail.delay(self.object.email, title, body)
 
         return HttpResponseRedirect(self.get_success_url())
 
@@ -51,6 +55,9 @@ class RegisterDoctorUserView(CreateView):
         self.object.save()
         Balance.objects.create(user=self.object)
         login(self.request, self.object)
+        title = 'Добро пожаловать на наш сайт!'
+        body = ''
+        send_user_mail.delay(self.object.email, title, body)
 
         return HttpResponseRedirect(self.get_success_url())
 
@@ -122,7 +129,7 @@ def profile(request, username):
                     .values('day', 'id', 'time', 'is_booked')
             calendar_dict = {}
             for day in calendar:
-                if day['day'] in calendar_dict:
+                if str(day['day']) in calendar_dict:
                     calendar_dict[str(day['day'])].append({'id':day['id'], 'time':str(day['time']), 'is_booked':day['is_booked']})
                 else:
                     calendar_dict[str(day['day'])] = [{'id':day['id'], 'time':str(day['time']), 'is_booked':day['is_booked']}]
@@ -189,17 +196,9 @@ def unban_user_view(request, username):
 def buy_premium_account(request):
     user = request.user
     if request.method == 'POST':
-        if user.balance.balance >= 50:
-            user.client.is_premium = True
-            user.client.save()
-            return redirect('accounts:profile', username=request.user.username)
-        title = 'У вас недостаточно средсв для покупки'
-        return render(request, 'errors/some_error.html', {'title':title})
+        user.client.is_premium = True
+        user.client.save()
+        return redirect('accounts:profile', username=request.user.username)
     return render(request, 'accounts/buy_premium_account.html')
 
-def site_messages(request):
-    if request.user.is_authenticated:
-        messages = SiteMessage.objects.filter(recipient=request.user)
-        return render(request, 'accounts/site_messages.html', {'messages':messages})
-    raise Http404
 

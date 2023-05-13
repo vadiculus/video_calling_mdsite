@@ -14,3 +14,15 @@ def require_not_banned(view):
             raise Http404
 
     return get_view
+
+def require_staff(view):
+    def get_view(request, *args, **kwargs):
+        if request.user.is_authenticated:
+            if request.user.is_staff:
+                return view(request, *args, **kwargs)
+            else:
+                raise Http404
+        else:
+            raise Http404
+
+    return get_view

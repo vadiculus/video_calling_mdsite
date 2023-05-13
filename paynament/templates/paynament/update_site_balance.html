@@ -1,0 +1,13 @@
+{% extends 'doctors/base.html' %}
+{% load static %}
+{% block content %}
+
+<form method="post">
+    <span>Баланс сайта: {{ site_balance }} фантиков</span><br>
+    {% csrf_token %}
+    {{ form }}<br>
+    <button type="submit">Обновить процент</button>
+</form>
+
+
+{% endblock %}

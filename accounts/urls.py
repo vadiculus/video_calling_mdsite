@@ -23,6 +23,5 @@ urlpatterns = [
     path('ban/<str:username>', views.ban_user_view, name='ban'),
     path('unban/<str:username>', views.unban_user_view, name='unban'),
     path('buy-premium-account/', views.buy_premium_account, name='buy_premium_account'),
-    path('site-messages/', views.site_messages, name='site_messages'),
 
 ]

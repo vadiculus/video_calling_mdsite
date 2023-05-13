@@ -20,6 +20,6 @@
 {% block submit_buttons_bottom %}
 
 <a href="{% url 'moderation:confirmation' original.pk 'confirmed' %}" class="blue_button" type="button" value="Подтвердить">Подтвердить</a>
-<input class="red_button" type="button" value="Отклонить заявку">
+<a href="{% url 'moderation:confirmation' original.pk 'refusal' %}" class="blue_button" type="button" value="Подтвердить">Отклонить</a>
 
 {% endblock %}

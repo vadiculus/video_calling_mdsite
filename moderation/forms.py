@@ -18,3 +18,13 @@ class ComplaintForm(forms.ModelForm):
     class Meta:
         model = Complaint
         fields = ['cause']
+
+class ConflictCauseForm(forms.Form):
+    cause = forms.CharField(label='Причина не возврата денег', widget=forms.Textarea())
+    class Meta:
+        fields = '__all__'
+
+class CanselConfirmationCauseForm(forms.Form):
+    cause = forms.CharField(label='Причина отклонения', widget=forms.Textarea())
+    class Meta:
+        fields = '__all__'

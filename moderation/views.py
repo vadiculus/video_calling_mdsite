@@ -4,38 +4,63 @@ from django.shortcuts import get_object_or_404
 from django.http import HttpResponseRedirect, Http404
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Prefetch
-from .models import CertificationConfirmation, CertificationPhoto
+from .models import CertificationConfirmation, CertificationPhoto, Complaint
 from django.views.generic import CreateView
 from .forms import AddCertificationConfirmationForm
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
-from accounts.models import User, SiteMessage
+from accounts.models import User
 from doctors.utils import require_doctors
 from django.urls import reverse_lazy
 from chat.models import OrderedCall
 from django.db import transaction
 from django.shortcuts import redirect
+from django.contrib.auth.models import Group, Permission
+from .forms import ConflictCauseForm, CanselConfirmationCauseForm
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
+from django.conf import settings
+from .tasks import send_mail, send_confirmation_mail
+from chat.tasks import send_user_mail
 
-from .utils import require_not_banned
+from .utils import require_not_banned, require_staff
 
-
+@require_staff
 def сertification_сonfirmation_view(request, pk, status):
     '''Админы поттверждают или отвергают запрос на квалификацию врача'''
-    if request.user.is_superuser:
-        if status and pk:
-            confirmation = get_object_or_404(CertificationConfirmation.objects.select_related('doctor'), pk=pk)
+    if not status in ['confirmed', 'refusal']:
+        raise Http404
 
-            doctor = confirmation.doctor
+    form = CanselConfirmationCauseForm
 
-            doctor.is_confirmed = True
-            doctor.qualifications.set(confirmation.qualifications.all())
-            confirmation.delete()
-            doctor.save()
+    if request.method == 'POST':
+        form = CanselConfirmationCauseForm(request.POST)
+        if form.is_valid():
+            if status == 'refusal':
+                with transaction.atomic():
+                    confirmation = get_object_or_404(CertificationConfirmation.objects.select_related('doctor'), pk=pk)
+                    doctor = confirmation.doctor
+                    send_confirmation_mail.delay(email=doctor.user.email,
+                                                      status='refusal',
+                                                      cause=form.cleaned_data['cause'])
+                    confirmation.delete()
+                return redirect('admin:index')
+    if request.method == 'GET':
+        if status == 'refusal':
+            return render(request, 'moderation/cansel_confirmation.html', {'form': form})
+        if status == 'confirmed':
+            with transaction.atomic():
+                confirmation = get_object_or_404(CertificationConfirmation.objects.select_related('doctor'), pk=pk)
+
+                doctor = confirmation.doctor
+
+                doctor.is_confirmed = True
+                doctor.qualifications.set(confirmation.qualifications.all())
+                confirmation.delete()
+                doctor.save()
+                send_confirmation_mail.delay(email=doctor.user.email, status='confirmed')
 
             return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
-        else:
-            raise Http404
-    raise PermissionDenied
 
 class AddCertificationConfirmationView(CreateView):
     '''Класс для добавления квалификаций врачу. (Не создание профиля)'''
@@ -79,25 +104,49 @@ def complaint_info(request, status):
         pass
         # raise Http404
 
-def transfer_money(request, pk):
+@require_staff
+def conflict_resolution(request, pk, res_type):
     '''Решение вопроса жалобы'''
-    call = get_object_or_404(OrderedCall.objects.prefetch_related('participants'), pk=pk)
-    if request.user.is_superuser:
-        with transaction.atomic():
-            call.transfer_money()
-            call.ordered_call_complaint.solved = True
-            doctor_message = f'Ваша проблема была решена. На ваш счет было переведено {round(call.get_price(), 2)} фантиков.'
-            SiteMessage.objects.create(recipient=call.get_doctor(),
-                                       message=doctor_message)
-            call.ordered_call_complaint.save()
-            call.delete()
-        return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
-    raise Http404
+
+    complaint = get_object_or_404(Complaint.objects.prefetch_related('initiator', 'accused'), pk=pk)
+    form = ConflictCauseForm
+    initiator, accused = complaint.initiator, complaint.accused
+
+    client, doctor = (initiator, accused) if not initiator.is_doctor else (accused, initiator)
+
+    if not res_type in ['transfer-money', 'refusal']:
+        raise Http404
+
+    if request.method == 'POST':
+        form = ConflictCauseForm(request.POST)
+        if form.is_valid():
+            title = 'Решение проблемы'
+            if res_type == 'transfer-money':
+                with transaction.atomic():
+                    client.balance.balance -= complaint.price
+                    doctor.balance.balance += complaint.price
+                    client.balance.save(), doctor.balance.save()
+                    if not initiator.is_doctor:
+                        doctor_message = f'Ваша проблема по поводу жлобы была решена. На ваш счет было переведено {complaint.price} фантиков.'
+                        client_message = f'Ваша жалоба была отклонена по причине: {form.cleaned_data["cause"]}'
+                        send_user_mail(doctor.email, title, doctor_message)
+                        send_user_mail(client.email, title, client_message)
+                    complaint.delete()
+                return redirect('admin:index')
+            else:
+                with transaction.atomic():
+                    doctor_message = f'Вам не вернули деньги по причине: {form.cleaned_data["cause"]}'
+                    client_message = f'Ваша проблема по поводу жалобы решена.'
+                    send_user_mail(doctor.email, title, doctor_message)
+                    send_user_mail(client.email, title, client_message)
+                    complaint.delete()
+                return redirect('admin:index')
+    return render(request, 'moderation/conflict_resolution.html', {'form': form})
 
 def make_user_admin(request, username):
     user = get_object_or_404(User, username=username)
     if request.user.is_superuser:
-        user.is_superuser = True
+        user.is_staff = True
         user.save()
         return redirect('accounts:profile', username)
     raise Http404

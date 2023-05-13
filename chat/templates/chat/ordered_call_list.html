@@ -9,7 +9,10 @@
     <span>{{ call|get_interlocutor:user }}</span><br>
     <span>{{ call.visiting_time.time }}</span>
     {% if call.is_active %}
-    <a href="{% url 'chat:ordered_call' call.pk %}">Начать звонок</a>
+    <a href="{% url 'chat:ordered_call' call.pk %}">Начать звонок</a><br>
+    {% endif %}
+    {% if user.is_doctor %}
+    <a href="{% url 'chat:cansel_call' call.pk %}">Отменить звонок</a>
     {% endif %}
 </div>
 {% endfor %}

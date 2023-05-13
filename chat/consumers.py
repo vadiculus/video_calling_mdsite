@@ -39,6 +39,7 @@ class CallConsumer(AsyncWebsocketConsumer):
         data['peer'] = self.user.username
 
         if data['action'] == 'get_peer_name':
+            print(self.channel_id)
             data['data'] = {'peer':self.user.username, 'full_name':self.user.full_name, 'channel_id':self.channel_id}
             await self.channel_layer.send(self.channel_name, {'type':'send_message', 'data':data})
         elif data['action'] == 'offer':
@@ -48,6 +49,10 @@ class CallConsumer(AsyncWebsocketConsumer):
             await self.channel_layer.group_send(self.room_name, {'type':'send_message', 'data':data})
             if not self.chat.call_start:
                 await database_sync_to_async(self.chat.set_call_start)(datetime.datetime.utcnow())
+        elif data['action'] == 'create_dataChannel':
+            print(data)
+            await self.channel_layer.group_send(self.room_name, {'type': 'send_message', 'data': data})
+
         else:
             await self.channel_layer.group_send(self.room_name, {'type':'send_message', 'data':data})
 

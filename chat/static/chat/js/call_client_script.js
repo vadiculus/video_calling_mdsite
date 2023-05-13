@@ -44,22 +44,24 @@ function getCookie(name){
 }
 
 function end_call(){
+    document.querySelector('#call_interface_container').style.display = 'none';
+    document.querySelector('#end_call_question').style.display = 'none';
+    document.querySelector('#call_end_info').style.display = 'block';
+    send_call_ending_status('success');
     peerConnection.close();
     dataChannel.close();
-    document.querySelector('#call_interface_container').style.display = 'none';
-    document.querySelector('#call_end_info').style.display = 'block';
 }
 
 function Timer(){
-    if (new Date > endTime){
+    if (new Date() > endTime){
         clearInterval(timer);
-        end_call()
+        end_call();
     } else {
         let date = new Date();
         let timestamp = Math.floor((endTime - date) / 1000);
-        let hours = Math.floor(timestamp / 60 / 60);
-        let minutes = Math.floor(timestamp / 60) - (hours * 60);
-        let seconds = timestamp % 60;
+        let hours = Math.floor(timestamp / 60 / 60) < 10 ? `0${Math.floor(timestamp / 60 / 60)}`: Math.floor(timestamp / 60 / 60); 
+        let minutes = Math.floor(timestamp / 60) - (hours * 60) < 10 ? `0${Math.floor(timestamp / 60) - (hours * 60)}`: Math.floor(timestamp / 60) - (hours * 60);
+        let seconds = timestamp % 60 < 10 ? `0${timestamp % 60}`: timestamp % 60 ;
         document.querySelector('#timer').innerHTML = 'Время до конца: ' + hours + ':' + minutes + ':' + seconds; 
     }
 }
@@ -69,13 +71,11 @@ timer = setInterval(Timer, 1000);
 clientSocket.addEventListener('message', (event)=>{
     message = JSON.parse(event['data']);
 
-    console.log(message);
-
-    if (message.peer === peer){
+    if (message.peer === peer || (!peer && message.action != 'get_peer_name')){
         return;
     }
 
-    console.log(message);
+    // console.log(message);
     
     switch (message.action){
         case 'offer':
@@ -90,15 +90,16 @@ clientSocket.addEventListener('message', (event)=>{
         case 'get_peer_name':
             peer = message.data.peer;
             full_name = message.data.full_name;
-            initializeChannelId = message.channel_id;
-            initialize();
+            console.log('<ESSAGE',message.data.channel_id);
+            initializeChannelId = message.data.channel_id;
+            initialize()
+            // setTimeout(()=>initialize(), 3000);
             break;
         case 'disconnected':
             remoteVideo.srcObject = null;
             console.log('Disconnected!');
             document.querySelector('#connection_state').style.display = 'block';
             document.querySelector('#interlocutor_microphone_state').style.visibility = 'hidden'
-            dataChannel.close();
             break;
         case 'connected':
             console.log('Connected!')
@@ -106,6 +107,11 @@ clientSocket.addEventListener('message', (event)=>{
             break;
         case 'complaint':
             // window.location.href = `http://${window.location.host}/moderation/complaint_info/accused/`;
+            break;
+        case 'create_dataChannel':
+            console.log('CREATE_DATACHANNEL Remote')
+            console.log(message.data);
+            createDataChannel(message.data.label, message.data)
             break;
     }
 });
@@ -138,12 +144,12 @@ function initialize(){
         }
     }
 
-    createDataChannel();
-
     peerConnection.ondatachannel = function(event){
-        console.log('create dataChannel');
         dataChannel = event.channel;
+        console.log('CREATE_DATACHANNEL MY')
     }
+
+    createDataChannel(initializeChannelId);
 
     peerConnection.ontrack = function(event){
         const reStream = event.streams[0]
@@ -172,19 +178,14 @@ function initialize(){
 
         localVideo.srcObject = localStream;
     
-    }, function (err) {
+    }, function (error) {
         console.log('error: ', error)
     }); 
 }
 
 function handlerOffer(offer, channel_id){
-    try{
-        dataChannel.close();
-    }
-    catch (error){
-        console.log(error);
-    }
-    createDataChannel(channel_id=channel_id);
+    dataChannel.close();
+    // createDataChannel(channel_id)
     peerConnection.setRemoteDescription(offer)
         .then(() => {
             console.log('Set Remote Description', peer);
@@ -192,7 +193,7 @@ function handlerOffer(offer, channel_id){
         })
         .then(answer => {
             console.log('Answer create');
-            peerConnection.setLocalDescription(answer).then(createDataChannel);
+            peerConnection.setLocalDescription(answer).then(()=>{});
 
             send({
                 action: "answer",
@@ -206,7 +207,7 @@ function handlerAnswer(answer){
 }
 
 function handlerCandidate(candidate){
-    peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+    peerConnection.addIceCandidate(new RTCIceCandidate(candidate)).then().catch(error=>console.log('error'));
 }
 
 document.querySelector('#audio-checkbox').addEventListener('change',(event)=>{
@@ -248,7 +249,6 @@ document.querySelector('#video-checkbox').addEventListener('change', (event)=>{
 
 document.querySelector('#send-msg-btn').addEventListener('click', ()=>{
     let message = document.querySelector('#chat-input');
-    console.log(dataChannel.readyState === 'open');
     if (dataChannel.readyState === 'open'){
         console.log(message.value)
         dataChannel.send(JSON.stringify({
@@ -270,19 +270,25 @@ document.querySelector('#chat-input').addEventListener('keydown', (event)=>{
     }
 })
 
-function createDataChannel(channel_id=null){
-    console.log(channel_id);
-    if(channel_id){
-        console.log('NEW CHANNELID!!!');
+function createDataChannel(channel_id, data=null){
+    if (!data){
+        console.log('NO DATA');
         dataChannel = peerConnection.createDataChannel(channel_id, {
-            reliable: true
+            reliable: true});
+
+        send({
+            action:'create_dataChannel',
+            data: {
+                id: dataChannel.id,
+                streamId: dataChannel.streamId,
+                name: dataChannel.label
+            }
         })
     } else {
-        dataChannel = peerConnection.createDataChannel(initializeChannelId, {
-            reliable: true
-        })
+        console.log('DATA');
+        dataChannel = peerConnection.createDataChannel(channel_id, {
+            reliable: true}, id=data.id, streamId=data.streamId);
     }
-    
 
     dataChannel.onopen = function(){
         console.log('dataChannel opened');
@@ -292,7 +298,7 @@ function createDataChannel(channel_id=null){
 
     dataChannel.onclose = function(){
         console.log('dataChannel closed');
-        remoteVideo.srcObject = null;
+        // remoteVideo.srcObject = null;
     }
 
     dataChannel.onmessage = (event)=>{
@@ -370,7 +376,8 @@ function send_call_ending_status(status){
                 dataChannel.send(JSON.stringify({
                     action: 'call_end',
                 }));
-                window.location.href = `http://${window.location.host}/accounts/site-messages/`;
+                end_call();
+                document.querySelector('#call_end_info_content').innerHTML = response.message
             }
             if (response.status === 'success complaint'){
                 dataChannel.send(JSON.stringify({

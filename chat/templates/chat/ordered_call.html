@@ -65,9 +65,12 @@
     <input id="send-msg-btn" onclick="" type="button" value="Отправить"><br>
 </div>
 
-<h1 id="call_end_info" style="display: none">
-    Звонок завершен
-</h1>
+<div id="call_end_info" style="display: none">
+    <h1>
+        Звонок завершен
+    </h1>
+    <p id="call_end_info_content"></p>
+</div>
 <div id="end_call_question" style="display: none;">
     {% if not user.is_doctor %}
     <form method="post" id="review_form">

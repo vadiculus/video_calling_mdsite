@@ -12,5 +12,7 @@ urlpatterns = [
     path('ordered-call/<uuid:pk>/', views.ordered_call_view, name='ordered_call'),
     path('calendar/ordered_calls/', views.ordered_call_list, name='ordered_call_list'),
     path('end-call/<uuid:pk>/', views.end_call, name='end_call'),
-    path('total-price/<uuid:pk>/', views.show_price, name='show_price')
+    path('total-price/<uuid:pk>/', views.show_price, name='show_price'),
+    path('cancel-ordered-call/<uuid:pk>/', views.cancel_ordered_call, name='cansel_call'),
+
 ]
