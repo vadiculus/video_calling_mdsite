@@ -19,11 +19,11 @@
     </div>
 {% endif %}
 <a href="{% url 'accounts:profile' interlocutor.username %}"><h2>{{ interlocutor.full_name }}</h2></a>
-
+<a href="{% url 'moderation:create_complaint' interlocutor.username %}">Подать жалобу</a>
 
 <ul id="chat_log">
     {% for message in chat_messages %}
-    <li>{{ message.author.full_name }}: {{ message.text }}</li>
+    <li class="message" data-time="{{ message.time|date:'Y-m-d H:i:sO' }}">{{ message.author.full_name }}: {{ message.text }}</li>
     {% endfor %}
 </ul>
 
@@ -35,4 +35,5 @@
 {% block scripts %}
 {{ chat_id | json_script:'chat_id' }}
 <script src="{% static 'chat/js/premium_client_script.js' %}"></script>
+<script src="{% static 'chat/js/messages_time.js' %}"></script>
 {% endblock %}

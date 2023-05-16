@@ -36,6 +36,7 @@ def book_call_view(request, pk):
 
         if request.method == 'POST':
             if balance < total_price_ordered_calls + visiting_time.get_total_price():
+                print(total_price_ordered_calls + visiting_time.get_total_price())
                 return render(request, 'calendars/book_call.html', {'visiting_time': visiting_time,
                                                                     'errors': ['У вас есть другие неоплаченые звонки. Пополните счет.']})
             if balance > visiting_time.get_total_price():

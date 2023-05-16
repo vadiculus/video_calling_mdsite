@@ -47,6 +47,8 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django.middleware.locale.LocaleMiddleware',
+    'chat.middleware.PremiumMessagesMiddleware',
+    'chat.middleware.AdminMessagesMiddleware',
 ]
 
 ROOT_URLCONF = 'mdsite.urls'

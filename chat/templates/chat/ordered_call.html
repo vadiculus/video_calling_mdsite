@@ -1,4 +1,4 @@
-{% extends 'doctors/base.html' %}
+{% extends 'doctors/base_chat.html' %}
 {% load static %}
 {% load chat_filters %}
 
@@ -9,6 +9,8 @@
 {% endblock %}
 
 {% block content %}
+<h2 id="connection_info" style="display: none">Соеденение потеряно</h2>
+
 <div id="call_interface_container">
     <label>Камера: <input type="checkbox" checked id="video-checkbox" onchange="" autocomplete="off" value="Включить камеру"><br>
     </label>
@@ -67,9 +69,8 @@
 
 <div id="call_end_info" style="display: none">
     <h1>
-        Звонок завершен
+        Звонок успешно завершен.
     </h1>
-    <p id="call_end_info_content"></p>
 </div>
 <div id="end_call_question" style="display: none;">
     {% if not user.is_doctor %}
@@ -85,9 +86,8 @@
     </form>
 </div>
 
-
-
 {{ call_id|json_script:"call_id" }}
 {{ call.visiting_time.time_end|json_script:"call_end_time" }}
 <script src="{% static 'chat/js/call_client_script.js' %}"></script>
+<script src="{% static 'chat/js/messages_time.js' %}"></script>
 {% endblock %}

@@ -20,7 +20,7 @@ from paynament.models import SiteBalance
 
 class OrderedCall(models.Model):
     id = models.UUIDField(default=uuid.uuid4, primary_key=True, editable=True)
-    visiting_time = models.OneToOneField(VisitingTime, null=True,
+    visiting_time = models.OneToOneField(VisitingTime,
                                          related_name='ordered_call',
                                          on_delete=models.CASCADE,
                                          verbose_name='Время визита')
@@ -58,13 +58,13 @@ class OrderedCall(models.Model):
         '''Получает цену. Человек распалачивается не поминутно,
         а за каждый дополнительный отрезок времени'''
         doctor = doctor.doctor
+        price = 0
         minutes_step = 20 # Отрезок времени
         minimal_percent = round(minutes_step / 60 * 100, 2) / 100 * round(float(doctor.service_cost), 2)
         if not self.call_start:
             raise Exception('OrderedCall has not "call_start"')
-        time_difference = (self.call_start - self.call_end).total_seconds() / 60
+        time_difference = (self.call_end - self.call_start).total_seconds() / 60
         for timestamp_count in range(1, 7, round(minutes_step/10)):
-            print(self.call_start, pytz.utc,  self.call_end)
             if time_difference > timestamp_count * minutes_step:
                 continue
             else:
@@ -139,5 +139,3 @@ class AdminChatMessage(Message):
     author = models.ForeignKey(User, related_name='author_admin_messages', on_delete=models.PROTECT)
     chat = models.ForeignKey(AdminChat, related_name='admin_chat_messages', on_delete=models.CASCADE)
     read = models.BooleanField(default=False, blank=True)
-
-

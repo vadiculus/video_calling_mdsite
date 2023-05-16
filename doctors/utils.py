@@ -84,7 +84,7 @@ def require_premium_and_doctors(view):
 
 def require_not_superusers(view):
     def get_view(request, *args, **kwargs):
-        if not request.user.is_superuser:
+        if not request.user.is_staff:
             return view(request, *args, **kwargs)
         else:
             title = 'Для администраторов запрещена функция чата'

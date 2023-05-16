@@ -1,5 +1,5 @@
 const call_id = JSON.parse(document.querySelector('#call_id').textContent);
-const clientSocket = new WebSocket(`ws://${window.location.host}/ws/ordered_call/${call_id}/`);
+let clientSocket = new WebSocket(`ws://${window.location.host}/ws/ordered_call/${call_id}/`);
 let localVideo = document.getElementById('local-video');
 let remoteVideo = document.getElementById('remote-video');
 let peerConnection;
@@ -7,13 +7,17 @@ let peer;
 let full_name;
 let localStream;
 let remoteStream;
-let dataChannel;
 let videoTrack;
-let initializeChannelId;
 const endTimeStr = JSON.parse(document.querySelector('#call_end_time').textContent);
 const endTime = new Date(endTimeStr);
 const csrftoken = getCookie('csrftoken');
 let timer;
+let connectionInterval;
+let started;
+
+clientSocket.onopen = onOpen;
+clientSocket.onclose = onClose;
+clientSocket.onmessage = onMessage;
 
 const config = {
     iceServers: [
@@ -48,8 +52,11 @@ function end_call(){
     document.querySelector('#end_call_question').style.display = 'none';
     document.querySelector('#call_end_info').style.display = 'block';
     send_call_ending_status('success');
+    send({
+        action: 'call_end',
+    })
     peerConnection.close();
-    dataChannel.close();
+    clientSocket.close();
 }
 
 function Timer(){
@@ -68,14 +75,14 @@ function Timer(){
 
 timer = setInterval(Timer, 1000);
 
-clientSocket.addEventListener('message', (event)=>{
+function onMessage(event){
     message = JSON.parse(event['data']);
 
     if (message.peer === peer || (!peer && message.action != 'get_peer_name')){
         return;
     }
 
-    // console.log(message);
+    console.log(message);
     
     switch (message.action){
         case 'offer':
@@ -90,9 +97,10 @@ clientSocket.addEventListener('message', (event)=>{
         case 'get_peer_name':
             peer = message.data.peer;
             full_name = message.data.full_name;
-            console.log('<ESSAGE',message.data.channel_id);
-            initializeChannelId = message.data.channel_id;
-            initialize()
+            initialize();
+            send({
+                action:'incoming_call'
+            });
             // setTimeout(()=>initialize(), 3000);
             break;
         case 'disconnected':
@@ -104,17 +112,50 @@ clientSocket.addEventListener('message', (event)=>{
         case 'connected':
             console.log('Connected!')
             document.querySelector('#connection_state').style.display = 'none';
+            if (message.data){
+                document.querySelector('#interlocutor_microphone_state').style.visibility = 'hidden'
+            } else {
+                document.querySelector('#interlocutor_microphone_state').style.visibility = 'visible'
+            }
+
+            if (message.data){
+                remoteVideo.style.visibility = 'visible'
+            } else {
+                remoteVideo.style.visibility = 'hidden'
+            }
             break;
+        case 'message':
+            let chat_log = document.querySelector('#chat-log');
+            let message_item = document.createElement('li');
+            message_item.textContent = `${message.full_name}: ${message.message}`;
+            chat_log.append(message_item);
+            break;
+        case 'change_camera':
+            if (message.data){
+                remoteVideo.style.visibility = 'visible'
+            } else {
+                remoteVideo.style.visibility = 'hidden'
+            }
+            break;
+
+        case 'change_audio':
+            let audio_state = document.querySelector('#interlocutor_microphone_state');
+            if (message.data){
+                audio_state.style.visibility = 'hidden'
+            } else {
+                audio_state.style.visibility = 'visible'
+            }
+            break;
+
+        case 'end_call':
+            end_call();
+            break;
+            
         case 'complaint':
-            // window.location.href = `http://${window.location.host}/moderation/complaint_info/accused/`;
-            break;
-        case 'create_dataChannel':
-            console.log('CREATE_DATACHANNEL Remote')
-            console.log(message.data);
-            createDataChannel(message.data.label, message.data)
+            window.location.href = `http://${window.location.host}/moderation/complaint-info/accused/`;
             break;
     }
-});
+};
 
 function getPeerName(){
     send({
@@ -122,9 +163,33 @@ function getPeerName(){
     });
 }
 
-clientSocket.onopen = function(){
-    console.log('Connected');
+function onOpen(){
+    console.log('OPENED');
+    document.querySelector('#connection_info').style.display = 'none';
+    send({
+        action: 'connected',
+        data: {
+            video: document.querySelector('#video-checkbox').checked,
+            audio: document.querySelector('#audio-checkbox').checked,
+        }
+    })
     getPeerName();
+}
+
+function onClose(){
+    console.log('CLOSED');
+    document.querySelector('#connection_info').style.display = 'block';
+    connectionInterval = setInterval(()=>{
+        if (clientSocket.readyState === WebSocket.CLOSED){
+            clientSocket = new WebSocket(`ws://${window.location.host}/ws/ordered_call/${call_id}/`);
+            clientSocket.onopen = onOpen;
+            clientSocket.onclose = onClose;
+            clientSocket.onmessage = onMessage;
+        } else {
+            clearInterval(connectionInterval);
+        }
+    }, 10000);
+    peerConnection.close();
 }
 
 
@@ -143,13 +208,6 @@ function initialize(){
             })
         }
     }
-
-    peerConnection.ondatachannel = function(event){
-        dataChannel = event.channel;
-        console.log('CREATE_DATACHANNEL MY')
-    }
-
-    createDataChannel(initializeChannelId);
 
     peerConnection.ontrack = function(event){
         const reStream = event.streams[0]
@@ -184,8 +242,6 @@ function initialize(){
 }
 
 function handlerOffer(offer, channel_id){
-    dataChannel.close();
-    // createDataChannel(channel_id)
     peerConnection.setRemoteDescription(offer)
         .then(() => {
             console.log('Set Remote Description', peer);
@@ -203,7 +259,7 @@ function handlerOffer(offer, channel_id){
 }
 
 function handlerAnswer(answer){
-    peerConnection.setRemoteDescription(new RTCSessionDescription(answer)).then(()=>console.log(peerConnection.remoteDescription));
+    peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
 }
 
 function handlerCandidate(candidate){
@@ -211,13 +267,13 @@ function handlerCandidate(candidate){
 }
 
 document.querySelector('#audio-checkbox').addEventListener('change',(event)=>{
-    if (dataChannel.readyState === 'open'){
+    if (clientSocket.readyState === 1){
         console.log('open');
-        dataChannel.send(JSON.stringify({   
+        send({   
             full_name,
             action: 'change_audio',
             data: event.target.checked,
-        }))
+        })
         audio = localStream.getAudioTracks()[0].enabled = event.target.checked;
         if (event.target.checked){
             document.querySelector('#my_microphone_state').style.visibility = 'hidden';
@@ -230,12 +286,12 @@ document.querySelector('#audio-checkbox').addEventListener('change',(event)=>{
 })
 
 document.querySelector('#video-checkbox').addEventListener('change', (event)=>{
-    if (dataChannel.readyState === 'open'){
-        dataChannel.send(JSON.stringify({
+    if (clientSocket.readyState === 1){
+        send({
             full_name,
             action: 'change_camera',
             data: event.target.checked,
-        }))
+        })
         video = localStream.getVideoTracks()[0].enabled = event.target.checked;
         if (event.target.checked){
             localVideo.style.visibility = 'visible'
@@ -249,13 +305,14 @@ document.querySelector('#video-checkbox').addEventListener('change', (event)=>{
 
 document.querySelector('#send-msg-btn').addEventListener('click', ()=>{
     let message = document.querySelector('#chat-input');
-    if (dataChannel.readyState === 'open'){
+    console.log(clientSocket.readyState);
+    if (clientSocket.readyState === 1){
         console.log(message.value)
-        dataChannel.send(JSON.stringify({
+        send({
             full_name,
             action: 'message',
             message: message.value,
-        }));
+        });
         let chat_log = document.querySelector('#chat-log');
         let message_item = document.createElement('li');
         message_item.textContent = `${full_name}: ${message.value}`;
@@ -270,77 +327,6 @@ document.querySelector('#chat-input').addEventListener('keydown', (event)=>{
     }
 })
 
-function createDataChannel(channel_id, data=null){
-    if (!data){
-        console.log('NO DATA');
-        dataChannel = peerConnection.createDataChannel(channel_id, {
-            reliable: true});
-
-        send({
-            action:'create_dataChannel',
-            data: {
-                id: dataChannel.id,
-                streamId: dataChannel.streamId,
-                name: dataChannel.label
-            }
-        })
-    } else {
-        console.log('DATA');
-        dataChannel = peerConnection.createDataChannel(channel_id, {
-            reliable: true}, id=data.id, streamId=data.streamId);
-    }
-
-    dataChannel.onopen = function(){
-        console.log('dataChannel opened');
-        remoteVideo.style.visibility = 'visible';
-        document.querySelector('#connection_state').style.display = 'none';
-    }
-
-    dataChannel.onclose = function(){
-        console.log('dataChannel closed');
-        // remoteVideo.srcObject = null;
-    }
-
-    dataChannel.onmessage = (event)=>{
-        data = JSON.parse(event.data)
-        switch (data.action){
-            case 'change_camera':
-                console.log('change_camera');
-                if (data.data){
-                    remoteVideo.style.visibility = 'visible'
-                } else {
-                    remoteVideo.style.visibility = 'hidden'
-                }
-                break;
-
-            case 'change_audio':
-                let audio_state = document.querySelector('#interlocutor_microphone_state');
-                if (data.data){
-                    audio_state.style.visibility = 'hidden'
-                } else {
-                    audio_state.style.visibility = 'visible'
-                }
-                break;
-
-            case 'end_call':
-                break;
-
-            case 'message':
-                let chat_log = document.querySelector('#chat-log');
-                let message_item = document.createElement('li');
-                message_item.textContent = `${data.full_name}: ${data.message}`;
-                chat_log.append(message_item);
-                break;
-                
-            case 'complaint':
-                window.location.href = `http://${window.location.host}/moderation/complaint-info/accused/`;
-                break;
-            case 'call_end':
-                end_call();
-                break;
-        }
-    }
-}
 
 function send_call_ending_status(status){
     const xhr = new XMLHttpRequest();
@@ -373,16 +359,16 @@ function send_call_ending_status(status){
             response = JSON.parse(xhr.response);
             console.log(xhr.response);
             if (response.status === 'success'){
-                dataChannel.send(JSON.stringify({
-                    action: 'call_end',
-                }));
+                send({
+                    action: 'end_call',
+                });
                 end_call();
                 document.querySelector('#call_end_info_content').innerHTML = response.message
             }
             if (response.status === 'success complaint'){
-                dataChannel.send(JSON.stringify({
+                send({
                     action: 'complaint',
-                }));
+                });
                 send({
                     action:'complaint'
                 })

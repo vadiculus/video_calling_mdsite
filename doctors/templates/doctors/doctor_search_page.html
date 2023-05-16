@@ -6,13 +6,28 @@
     <button type="submit">Поиск</button>
 </form>
 
+{% if object_list %}
 {% for doctor in object_list  %}
 {% if doctor.user.is_banned %}
 <a href="{% url 'accounts:profile' doctor.username %}">Заблокирован: {{ doctor }}</a><br>
 {% else %}
-<a href="{% url 'accounts:profile' doctor.username %}">{{ doctor }}</a><br>
+<div class="doctor_search_item" style="border: 1px solid grey">
+    <a href="{% url 'accounts:profile' doctor.username %}">{{ doctor }}</a><br>
+    {% if doctor.rating %}
+    <span>Рейтинг: {{ doctor.rating }}</span>
+    {% else %}
+    <span>Рейтинг: Без рейтинга</span>
+    {% endif %}
+</div>
 {% endif %}
 {% endfor %}
+{% else %}
+<h3>Не было найдено врачей по вашему запросу</h3>
+{% endif %}
 
 
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'chat/js/messages_script.js' %}"></script>
 {% endblock %}

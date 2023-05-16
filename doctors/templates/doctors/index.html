@@ -1,0 +1,25 @@
+{% extends 'doctors/base.html' %}
+{% load static %}
+{% block content %}
+<form action="{% url 'doctors:doctor_search' %}" method="get">
+    {{ form.as_p }}
+    <button type="submit">Поиск</button>
+</form>
+
+<p>Красивый текст о сайте</p>
+
+{% for doctor in doctors  %}
+<div class="doctor_search_item" style="border: 1px solid grey">
+    <a href="{% url 'accounts:profile' doctor.username %}">{{ doctor }}</a><br>
+    {% if doctor.rating %}
+    <span>Рейтинг: {{ doctor.rating }}</span>
+    {% else %}
+    <span>Рейтинг: Без рейтинга</span>
+    {% endif %}
+</div>
+{% endfor %}
+
+{% endblock %}
+{% block scripts %}
+<script src="{% static 'chat/js/messages_script.js' %}"></script>
+{% endblock %}

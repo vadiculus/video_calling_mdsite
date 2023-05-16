@@ -35,6 +35,7 @@ class CertificationConfirmationAdmin(admin.ModelAdmin):
 
 
 class ComplaintAdmin(admin.ModelAdmin):
+    fields = ['initiator', 'accused', 'cause']
     change_form_template = 'moderation/admin/complaint_change_form.html'
     def has_change_permission(self, request, obj=None):
         return False

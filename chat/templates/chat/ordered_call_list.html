@@ -7,7 +7,7 @@
 {% for call in calls %}
 <div style="border: 1px solid grey">
     <span>{{ call|get_interlocutor:user }}</span><br>
-    <span>{{ call.visiting_time.time }}</span>
+    <span class="call_time" data-date="{{ call.visiting_time.time|date:'Y-m-d H:i:sO' }}">{{ call.visiting_time.time }}</span>
     {% if call.is_active %}
     <a href="{% url 'chat:ordered_call' call.pk %}">Начать звонок</a><br>
     {% endif %}
@@ -20,4 +20,8 @@
 <h3>У вас пока что нету забронированых звонков</h3>
 {% endif %}
 
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'chat/js/call_date.js' %}"></script>
 {% endblock %}

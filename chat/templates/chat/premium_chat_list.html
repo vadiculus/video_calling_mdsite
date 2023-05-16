@@ -21,7 +21,10 @@
             height: 50px">
     </div>
 {% endif %}
-<a href="{% url 'chat:premium_chat' chat.id %}">{{ chat|get_interlocutor:user }} {{ chat|not_read_premium_messages:user }}</a>
+<a class="chat_item" href="{% url 'chat:premium_chat' chat.id %}" data-id="{{ chat.id }}">
+    {{ chat|get_interlocutor:user }}<br>
+</a>
+<span>Новые сообщеения: </span><span data-chat-id="{{ chat.id }}">{{ chat|not_read_premium_messages:user }}</span></span>
 {% endwith %}
 {% endfor %}
 {% else %}

@@ -2,7 +2,8 @@ from django import forms
 from .models import Qualification, Doctor, Review
 
 class DoctorSearchForm(forms.ModelForm):
-    qualifications = forms.ModelMultipleChoiceField(required=False,
+    qualifications = forms.ModelMultipleChoiceField(label='Квалификации',
+                                                    required=False,
                                                     queryset=Qualification.objects.all(),
                                                     widget=forms.CheckboxSelectMultiple())
     class Meta:

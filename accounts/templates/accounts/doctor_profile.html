@@ -32,7 +32,7 @@
 <a href="{% url 'accounts:update_doctor_profile' %}">Изменить профиль</a>
 <a href="{% url 'accounts:add_certification_confirmation' %}">Добавить квалификацию</a>
 <a href="{% url 'accounts:change_password' %}">Изменить пароль</a><br>
-{% elif user.is_superuser %}
+{% elif user.is_staff %}
 <a href="{% url 'accounts:ban' page_user.username %}">Заблокировать</a><br>
 {% endif %}
 
@@ -41,11 +41,14 @@
 {% else %}
 <span>Никто не оценивал</span><br><br>
 {% endif %}
+{% if user != page_user %}
+<a href="{% url 'moderation:create_complaint' page_user.username %}">Подать жалобу</a><br>
+{% endif %}
 
 
 {% if user.is_authenticated %}
 {% if not user.is_doctor  %}
-{% if user.client.is_premium or user.is_superuser %}
+{% if user.client.is_premium or user.is_staff %}
 <a href="{% url 'chat:create_chat' page_user.username %}">Написать</a><br>
 {% else %}
 <p>Чтобы написать доктору вы должны <a href="{% url 'accounts:buy_premium_account' %}">купить пермиум аккаунт</a></p>
@@ -60,6 +63,26 @@
 {% if page_user == user %}
 <a href="{% url 'calendars:create_visiting_time' %}">Добавить время для визита</a><br>
 {% endif %}
+
+{% if page_user != user %}
+<form action="{% url 'doctors:create_review' page_user.username %}" method="post">
+    {% csrf_token %}
+    {{ review_form.as_p }}
+    <button type="submit">Отправить</button>
+</form>
+{% endif %}
+
+{% for review in reviews %}
+<div class="review_item" style="border: 1px solid grey">
+    {% if review.client.user.full_name  %}
+    <span>{{ review.client.user.full_name }}</span>
+    {% else %}
+    Анонимный
+    {% endif %}<br>
+    <span>Оценка: {{ review.rating }}</span>
+    <p>{{ review.review }}</p>
+</div>
+{% endfor %}
 
 {% endblock %}
 

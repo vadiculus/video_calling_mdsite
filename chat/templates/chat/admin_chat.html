@@ -11,7 +11,7 @@
 
 <ul id="chat_log">
     {% for message in chat_messages %}
-    <li>{{ message.author.full_name }}: {{ message.text }}</li>
+    <li class="message" data-time="{{ message.time|date:'Y-m-d H:i:sO' }}">{{ message.author.full_name }}: {{ message.text }}</li>
     {% endfor %}
 </ul>
 
@@ -23,4 +23,5 @@
 {% block scripts %}
 {{ chat_id | json_script:'chat_id' }}
 <script src="{% static 'chat/js/admin_client_script.js' %}"></script>
+<script src="{% static 'chat/js/messages_time.js' %}"></script>
 {% endblock %}

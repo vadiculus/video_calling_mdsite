@@ -4,7 +4,7 @@ from django.shortcuts import get_object_or_404
 from django.http import HttpResponseRedirect, Http404
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Prefetch
-from .models import CertificationConfirmation, CertificationPhoto, Complaint
+from .models import CertificationConfirmation, CertificationPhoto, Complaint, StandardComplaint
 from django.views.generic import CreateView
 from .forms import AddCertificationConfirmationForm
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -16,12 +16,13 @@ from chat.models import OrderedCall
 from django.db import transaction
 from django.shortcuts import redirect
 from django.contrib.auth.models import Group, Permission
-from .forms import ConflictCauseForm, CanselConfirmationCauseForm
+from .forms import ConflictCauseForm, CanselConfirmationCauseForm, CopmlaintCauseForm
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.conf import settings
 from .tasks import send_mail, send_confirmation_mail
 from chat.tasks import send_user_mail
+from django.contrib import messages
 
 from .utils import require_not_banned, require_staff
 
@@ -114,6 +115,8 @@ def conflict_resolution(request, pk, res_type):
 
     client, doctor = (initiator, accused) if not initiator.is_doctor else (accused, initiator)
 
+    not_right_user = None;
+
     if not res_type in ['transfer-money', 'refusal']:
         raise Http404
 
@@ -126,11 +129,17 @@ def conflict_resolution(request, pk, res_type):
                     client.balance.balance -= complaint.price
                     doctor.balance.balance += complaint.price
                     client.balance.save(), doctor.balance.save()
+                    doctor_message = ''
+                    client_message = ''
                     if not initiator.is_doctor:
                         doctor_message = f'Ваша проблема по поводу жлобы была решена. На ваш счет было переведено {complaint.price} фантиков.'
                         client_message = f'Ваша жалоба была отклонена по причине: {form.cleaned_data["cause"]}'
-                        send_user_mail(doctor.email, title, doctor_message)
-                        send_user_mail(client.email, title, client_message)
+                    else:
+                        doctor_message = f'Ваша проблема по поводу жлобы была решена. На ваш счет было переведено {complaint.price} фантиков.'
+                        client_message = f'Ваша проблема по поводу жлобы была решена. ' \
+                                         f'С вашего счета были сняты деньги за звонок. Причина: {form.cleaned_data["cause"]}'
+                    send_user_mail(doctor.email, title, doctor_message)
+                    send_user_mail(client.email, title, client_message)
                     complaint.delete()
                 return redirect('admin:index')
             else:
@@ -141,7 +150,11 @@ def conflict_resolution(request, pk, res_type):
                     send_user_mail(client.email, title, client_message)
                     complaint.delete()
                 return redirect('admin:index')
-    return render(request, 'moderation/conflict_resolution.html', {'form': form})
+    if res_type == 'transfer-money':
+        not_right_user = client
+    else:
+        not_right_user = doctor
+    return render(request, 'moderation/conflict_resolution.html', {'form': form, 'not_right_user':not_right_user})
 
 def make_user_admin(request, username):
     user = get_object_or_404(User, username=username)
@@ -150,3 +163,21 @@ def make_user_admin(request, username):
         user.save()
         return redirect('accounts:profile', username)
     raise Http404
+
+
+class CreateStandardComplaint(CreateView):
+    form_class = CopmlaintCauseForm
+    template_name = 'moderation/complaint.html'
+
+    def get_success_url(self):
+        return reverse_lazy('accounts:profile',  kwargs={'username':self.request.user.username})
+
+    def form_valid(self, form):
+        self.object, _ = StandardComplaint.objects.update_or_create(initiator=self.request.user,
+                                                                    accused=get_object_or_404(User, username=self.kwargs.get('username')),
+                                                                    cause=form.cleaned_data['cause'])
+        messages.success(self.request, 'Жалоба была успешно поданна')
+        return HttpResponseRedirect(self.get_success_url())
+
+def create_standard_complaint(request, username):
+    user = get_object_or_404(User, username=username)

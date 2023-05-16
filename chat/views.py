@@ -31,6 +31,8 @@ def premium_chat(request, chat_id):
     chat_messages = chat.premium_chat_messages.all()
     interlocutor = chat.get_interlocutor(request.user) #Получаем собеседника
 
+    chat.premium_chat_messages.all().update(read=True)
+
     if request.user.is_authenticated:
         if request.user.is_banned:
             title = 'Ваш аккаунт заблокирован'
@@ -57,6 +59,9 @@ def admin_chat(request, chat_id):
         Prefetch('admin_chat_messages', AdminChatMessage.objects.select_related('author'))), pk=chat_id)
     chat_messages = chat.admin_chat_messages.all()
     chat.admin_chat_messages.filter(~Q(author=request.user) & Q(read=False)).update(read=True)
+
+    chat.admin_chat_messages.all().update(read=True)
+
     if request.user.is_authenticated:
         if request.user not in chat.participants.all():
             title = 'У вас нету доступа к этом чату'
@@ -108,7 +113,7 @@ def premium_chat_list_view(request):
 
 @login_required
 def admin_chat_list_view(request):
-    chats = AdminChat.objects.prefetch_related('participants').filter(participants__id__in=[request.user.id])
+    chats = AdminChat.objects.prefetch_related('participants').filter(participants=request.user)
     return render(request, 'chat/admin_chat_list.html', {'chats':chats})
 
 @require_not_banned
@@ -157,6 +162,9 @@ def end_call(request, pk):
             return JsonResponse({'status': 'no permissions'})
 
         call.call_end = datetime.datetime.now(pytz.utc)
+        call.is_ended = True
+        if not call.call_start:
+            call.call_start = call.visiting_time.time
         call.save()
         site_balance = SiteBalance.objects.get(pk=1)
         percent = call.get_percent(doctor, site_balance)
@@ -169,15 +177,15 @@ def end_call(request, pk):
                 site_balance.balance += call.get_percent(doctor, site_balance)
                 doctor.balance.balance += price
                 title = 'Успешный звонок!'
-                body = f'Звонок был успешно проведен. С вашего счета была сснята сумма: {total_price} фантиков'
+                body = f'Звонок был успешно проведен. С вашего счета была снята сумма: {total_price} фантиков'
                 send_user_mail.delay(client.email, title, body)
                 site_balance.save(), client.balance.save(), doctor.balance.save(),
                 call.visiting_time.delete()
                 return body
 
         if call_end_type == 'success':
-            message = money_transfer()
-            return JsonResponse({'status':'success', 'message': message})
+            money_transfer()
+            return JsonResponse({'status':'success'})
 
         if call_end_type == 'review':
             if not initiator.is_doctor:
@@ -193,7 +201,6 @@ def end_call(request, pk):
             complaint_form = ComplaintForm(data)
             if complaint_form.is_valid():
                 with transaction.atomic():
-                    call.is_ended = True
                     complaint = complaint_form.save(commit=False)
                     complaint.initiator = initiator
                     complaint.accused = call.get_interlocutor(initiator)
@@ -208,7 +215,7 @@ def end_call(request, pk):
                 send_user_mail.delay(client.email, title, body)
                 return JsonResponse({'status':'success complaint'})
     else:
-        return JsonResponse({'status': 'No xhr request'})
+        return JsonResponse({'status': 'no xhr request'})
 
 def show_price(request, pk):
     call = get_object_or_404(OrderedCall.objects.prefetch_related('participants'), pk=pk)
