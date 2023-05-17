@@ -14,6 +14,7 @@ import uuid
 from mdsite.utils import server_tz
 from django.db.models import Q
 from django.db import transaction
+from chat.tasks import send_user_mail
 
 from paynament.models import SiteBalance
 
@@ -32,55 +33,81 @@ class OrderedCall(models.Model):
     call_start = models.DateTimeField(null=True, blank=True)
     call_end = models.DateTimeField(null=True,default=None, blank=True)
     is_ended = models.BooleanField(default=False, verbose_name='Завершеный')
-    is_success = models.BooleanField(default=False, verbose_name='Успешный')
+    have_complaint = models.BooleanField(default=False)
 
     def is_active(self):
         visiting_time = self.visiting_time.time
         call_end = visiting_time + datetime.timedelta(
             minutes=self.visiting_time.max_time) - datetime.timedelta(minutes=10)
         utc = pytz.UTC
-        # return visiting_time < utc.localize(datetime.datetime.now()) < call_end
-        return True
+        return visiting_time < utc.localize(datetime.datetime.utcnow()) < call_end
 
-    def transfer_money(self, client=None, doctor=None, site_balance=None):
+    def transfer_money(self, client=None, doctor=None, site_balance=None, half_sum=False):
         if not (client or doctor):
             doctor = self.get_doctor()
             client = self.get_client()
-        doctor.balance.balance += self.get_price(doctor)
-        client.balance.balance -= self.get_total_price(doctor, site_balance)
-        doctor.balance.save()
-        client.balance.save()
+        if not site_balance:
+            site_balance = SiteBalance.objects.get(pk=1)
+
+        with transaction.atomic():
+            doctor.balance.balance += self.get_price(doctor, half_sum=half_sum)
+            total_price = self.get_total_price(doctor, site_balance, half_sum=half_sum)
+            client.balance.balance -= total_price
+            site_balance.balance += self.get_percent(doctor, site_balance, half_sum=half_sum)
+            title = 'Успешный звонок!'
+            body = f'Звонок был успешно проведен. С вашего счета была снята сумма: {total_price} фантиков'
+            send_user_mail.delay(client.email, title, body)
+            site_balance.save(), client.balance.save(), doctor.balance.save(),
+            self.visiting_time.delete()
+            return body
 
     def end_time(self):
         return str(self.visiting_time.time + datetime.timedelta(minutes=self.visiting_time.max_time))
 
-    def get_price(self, doctor):
+    def get_price(self, doctor, half_sum=False):
         '''Получает цену. Человек распалачивается не поминутно,
         а за каждый дополнительный отрезок времени'''
         doctor = doctor.doctor
         price = 0
-        minutes_step = 20 # Отрезок времени
-        minimal_percent = round(minutes_step / 60 * 100, 2) / 100 * round(float(doctor.service_cost), 2)
-        if not self.call_start:
-            raise Exception('OrderedCall has not "call_start"')
-        time_difference = (self.call_end - self.call_start).total_seconds() / 60
-        for timestamp_count in range(1, 7, round(minutes_step/10)):
-            if time_difference > timestamp_count * minutes_step:
-                continue
-            else:
-                if time_difference <= timestamp_count * minutes_step:
-                    price = timestamp_count * minimal_percent
-                else:
-                    price = (timestamp_count + 1) * minimal_percent
-                return Decimal(round(price, 2))
+        percent_time = 50
 
-    def get_percent(self, doctor, site_balance):
-        time_difference = (self.visiting_time.time_end - self.visiting_time.time).total_seconds() / 60
+        if not self.call_end or not self.call_start or self.call_end > self.visiting_time.time_end:
+            self.call_end = self.call_end if self.call_end else self.visiting_time.time
+            self.call_start = self.call_start if self.call_start else self.visiting_time.time
+            self.call_end = self.visiting_time.time_end if self.call_end > self.visiting_time.time_end else self.call_end
+            self.save()
+
+        time_difference = (self.call_end - self.call_start).total_seconds() / 60
+
+        if half_sum:
+            price = round(doctor.service_cost / 2)
+            return Decimal(round(price, 2))
+
+        if time_difference > (self.visiting_time.time_end - self.visiting_time.time).total_seconds() / 60 / 2:
+            price = round(doctor.service_cost)
+        else:
+            price = round(doctor.service_cost / 2)
+
+        return Decimal(round(price, 2))
+
+    def get_percent(self, doctor, site_balance, half_sum=False):
+        time_difference = None
+        if half_sum:
+            time_difference = (self.visiting_time.time_end - self.visiting_time.time).total_seconds() / 60 / 2
+        else:
+            time_difference = (self.call_end - self.call_start).total_seconds() / 60
+
+        if not self.call_end or not self.call_start or self.call_end > self.visiting_time.time_end:
+            self.call_end = self.call_end if self.call_end else self.visiting_time.time
+            self.call_start = self.call_start if self.call_start else self.visiting_time.time
+            self.call_end = self.visiting_time.time_end if self.call_end > self.visiting_time.time_end else self.call_end
+            self.save()
+
         percent = Decimal(time_difference / 60) * (Decimal(doctor.doctor.service_cost) / 100 * site_balance.percent)
         return Decimal(round(percent, 2))
 
-    def get_total_price(self, doctor, site_balance):
-        return round(self.get_price(doctor) + self.get_percent(doctor, site_balance), 2)
+    def get_total_price(self, doctor, site_balance, half_sum=False):
+        return round(self.get_price(doctor, half_sum) + self.get_percent(doctor, site_balance), 2)
 
     def get_client(self):
         return self.participants.select_related('client', 'balance').get(is_doctor=False)

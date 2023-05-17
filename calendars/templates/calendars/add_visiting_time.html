@@ -1,6 +1,11 @@
 {% extends 'doctors/base.html' %}
 {% load static %}
 {% block content %}
+
+<div id="calendar_container">
+
+</div><br>
+
 <form method="post" enctype="multipart/form-data">
     <ul>
     {% for error in errors %}
@@ -9,11 +14,15 @@
     </ul>
     {% csrf_token %}
     {{ form.as_p }}
-    <button type="submit">Забронировать</button>
+    <button type="submit">Создать</button>
 </form>
 
 {% endblock %}
 
 {% block scripts %}
+{% if calendar %}
+{{ calendar|json_script:"calendar_script" }}
+{% endif %}
+<script src="{% static 'calendars/js/calendars_script.js' %}"></script>
 <script src="{% static 'calendars/js/timezone_script.js' %}"></script>
 {% endblock %}

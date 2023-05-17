@@ -32,4 +32,4 @@ class UserAdmin(admin.ModelAdmin):
         return redirect('accounts:profile', obj.username)
 
 admin.site.register(User, UserAdmin)
-admin.site.register(Client, ClientAdmin)
+# admin.site.register(Client, ClientAdmin)

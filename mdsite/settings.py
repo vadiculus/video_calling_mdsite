@@ -1,5 +1,6 @@
 import os.path
 from pathlib import Path
+from . import config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 import django.middleware.locale
@@ -141,8 +142,8 @@ CHANNEL_LAYERS = {
 
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
-EMAIL_HOST_USER = ''
-EMAIL_HOST_PASSWORD = ''
+EMAIL_HOST_USER = config.email
+EMAIL_HOST_PASSWORD = config.password
 EMAIL_USE_TLS = True
 EMAIL_USE_SSL = False
 

@@ -1,0 +1,17 @@
+{% extends 'doctors/base.html' %}
+{% load static %}
+{% block content %}
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {% for input in form %}
+        <label>{{ input.label }}: {{ input }}</label><br>
+        {{ input.errors }}
+        {% endfor %}
+        <span>Разрешено от 1 до 5 фото</span><br>
+        <button type="submit">Создать профиль</button>
+    </form>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'accounts/js/create_profile.js' %}"></script>
+{% endblock %}

@@ -18,6 +18,8 @@ from mdsite.utils import server_tz
 from mdsite.settings import TIME_ZONE
 from paynament.models import SiteBalance
 from .tasks import send_user_mail
+from django.contrib import messages
+from moderation.models import StandardComplaint
 import pytz
 import datetime
 import json
@@ -78,7 +80,7 @@ def admin_chat(request, chat_id):
 def create_chat(request, username):
     user = request.user
     interlocutor = get_object_or_404(User, username=username)
-    ChatModel = AdminChat if user.is_superuser else PremiumChat
+    ChatModel = AdminChat if user.is_staff else PremiumChat
     if not user.is_doctor: # Доктора не могут начинать чат
         if user.is_banned:
             title = 'Ваш аккаунт заблокирован'
@@ -93,7 +95,7 @@ def create_chat(request, username):
             chat = ChatModel.objects.create()
             chat.participants.set([user, interlocutor])
 
-        if user.is_superuser:
+        if user.is_staff:
             return redirect(f'chat:admin_chat', chat.id)
 
         if user.client.is_premium:
@@ -127,6 +129,7 @@ def ordered_call_view(request, pk):
         return render(request, 'chat/ordered_call.html', {
             'call_id':pk,
             'call':ordered_call,
+            'call_end_time': ordered_call.visiting_time.time_end - datetime.timedelta(minutes=1),
             'interlocutor': interlocutor,
             'review_form': ReviewForm(),
             'complaint_form': ComplaintForm(),
@@ -135,6 +138,7 @@ def ordered_call_view(request, pk):
         if request.user.is_doctor:
             title = 'Вы пропусти свое время'
             body = 'На вас была поданна жалоба'
+
             return render(request, 'errors/some_error.html', {'title': title, 'body':body})
         else:
             title = 'Вы пропусти свое время'
@@ -144,15 +148,18 @@ def ordered_call_view(request, pk):
 @require_not_banned
 def ordered_call_list(request):
     ordered_calls = OrderedCall.objects.select_related('visiting_time')\
-        .prefetch_related('participants').filter(Q(participants__id=request.user.id, is_success=False, is_ended=False))
+        .prefetch_related('participants').filter(Q(participants__id=request.user.id, is_ended=False))
     return render(request, 'chat/ordered_call_list.html', {'calls':ordered_calls})
 
 @require_POST
 def end_call(request, pk):
-    call = get_object_or_404(OrderedCall.objects.prefetch_related(
-        Prefetch('participants', User.objects.select_related('balance'))
-    ), pk=pk)
-    if not call.is_success and request.headers.get('x-requested-with') == 'XMLHttpRequest':
+    try:
+        call = OrderedCall.objects.prefetch_related(
+            Prefetch('participants', User.objects.select_related('balance'))).get(pk=pk)
+    except OrderedCall.DoesNotExist:
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({'status': 'success'})
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
         client, doctor = call.get_client(), call.get_doctor()
         initiator = request.user
         data = json.loads(request.body)
@@ -163,6 +170,7 @@ def end_call(request, pk):
 
         call.call_end = datetime.datetime.now(pytz.utc)
         call.is_ended = True
+        call.have_complaint = True
         if not call.call_start:
             call.call_start = call.visiting_time.time
         call.save()
@@ -226,8 +234,11 @@ def cancel_ordered_call(request, pk):
     call = get_object_or_404(OrderedCall.objects.select_related('visiting_time')
                              .prefetch_related('participants'), pk=pk)
     if call.get_doctor() == request.user:
-        message_body = f'Врач { call.visiting_time.doctor } отменил назначеный звонок'
-        send_user_mail(call.get_client().email, 'Отмена конференции', message_body)
-        call.visiting_time.delete()
+        if not call.is_active():
+            message_body = f'Врач { call.visiting_time.doctor } отменил назначеный звонок'
+            send_user_mail(call.get_client().email, 'Отмена конференции', message_body)
+            call.visiting_time.delete()
+        else:
+            messages.error(request, 'Звонок уже активен. Вы не можете его отменить')
     return redirect('accounts:profile', request.user.username)
 

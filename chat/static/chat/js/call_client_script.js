@@ -13,7 +13,6 @@ const endTime = new Date(endTimeStr);
 const csrftoken = getCookie('csrftoken');
 let timer;
 let connectionInterval;
-let started;
 
 clientSocket.onopen = onOpen;
 clientSocket.onclose = onClose;
@@ -38,7 +37,7 @@ function getCookie(name){
         const cookies = document.cookie.split(';');
         for(const i = 0; i<cookies.length; i++){
             const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length+1) ===(name + "=")){
+            if (cookie.substring(0, name.length+1) === (name + "=")){
                 cookieValue = decodeURIComponent(cookie.substring(name.length+1));
                 break;
             }
@@ -52,11 +51,13 @@ function end_call(){
     document.querySelector('#end_call_question').style.display = 'none';
     document.querySelector('#call_end_info').style.display = 'block';
     send_call_ending_status('success');
+    ended = true;
     send({
         action: 'call_end',
     })
     peerConnection.close();
     clientSocket.close();
+    document.getElementById('connection_info').remove();
 }
 
 function Timer(){
@@ -64,6 +65,7 @@ function Timer(){
         clearInterval(timer);
         end_call();
     } else {
+        console.log(endTime);
         let date = new Date();
         let timestamp = Math.floor((endTime - date) / 1000);
         let hours = Math.floor(timestamp / 60 / 60) < 10 ? `0${Math.floor(timestamp / 60 / 60)}`: Math.floor(timestamp / 60 / 60); 
@@ -86,18 +88,18 @@ function onMessage(event){
     
     switch (message.action){
         case 'offer':
-            handlerOffer(message.data, message.new_channel_id);
+            handlerOffer(message.data);
             document.querySelector('#connection_state').style.display = 'none';
         case 'candidate':
-            handlerCandidate(message.data)
+            handlerCandidate(message.data);
             break;
         case 'answer':
-            handlerAnswer(message.data)
+            handlerAnswer(message.data);
             break;
         case 'get_peer_name':
             peer = message.data.peer;
             full_name = message.data.full_name;
-            initialize();
+            initialize(first_time=true);
             send({
                 action:'incoming_call'
             });
@@ -123,6 +125,13 @@ function onMessage(event){
             } else {
                 remoteVideo.style.visibility = 'hidden'
             }
+
+            send({
+                action: 'media_info',
+                video: document.querySelector('#video-checkbox').checked,
+                audio: document.querySelector('#audio-checkbox').checked,
+            })
+
             break;
         case 'message':
             let chat_log = document.querySelector('#chat-log');
@@ -154,6 +163,19 @@ function onMessage(event){
         case 'complaint':
             window.location.href = `http://${window.location.host}/moderation/complaint-info/accused/`;
             break;
+        case 'media_info':
+            if (message.audio){
+                document.querySelector('#interlocutor_microphone_state').style.visibility = 'hidden'
+            } else {
+                document.querySelector('#interlocutor_microphone_state').style.visibility = 'visible'
+            }
+
+            if (message.video){
+                remoteVideo.style.visibility = 'visible'
+            } else {
+                remoteVideo.style.visibility = 'hidden'
+            }
+            break;
     }
 };
 
@@ -173,7 +195,11 @@ function onOpen(){
             audio: document.querySelector('#audio-checkbox').checked,
         }
     })
-    getPeerName();
+    if (peer){
+        initialize();
+    } else {
+        getPeerName();
+    }
 }
 
 function onClose(){
@@ -181,6 +207,7 @@ function onClose(){
     document.querySelector('#connection_info').style.display = 'block';
     connectionInterval = setInterval(()=>{
         if (clientSocket.readyState === WebSocket.CLOSED){
+            peerConnection = null;
             clientSocket = new WebSocket(`ws://${window.location.host}/ws/ordered_call/${call_id}/`);
             clientSocket.onopen = onOpen;
             clientSocket.onclose = onClose;
@@ -189,6 +216,7 @@ function onClose(){
             clearInterval(connectionInterval);
         }
     }, 10000);
+    peer = null;
     peerConnection.close();
 }
 
@@ -197,8 +225,20 @@ function send(message){
     clientSocket.send(JSON.stringify(message));
 }
 
-function initialize(){
+function initialize(first_time=false){
     peerConnection = new RTCPeerConnection(config);
+
+    peerConnection.onsignalingstatechange = function(){
+        console.log('sigenalingStage: ',peerConnection.signalingState);
+    }
+
+    peerConnection.oniceconnectionstatechange = function(){
+        console.log('iceConnectionState: ',peerConnection.iceConnectionState);
+    }
+
+    peerConnection.onreadystatechange = function(){
+        console.log(peerConnection.readyState);
+    }
 
     peerConnection.onicecandidate = function(event){
         if (event.candidate){
@@ -217,20 +257,21 @@ function initialize(){
         remoteVideo.srcObject = reStream;
     }
 
+    createOffer();
+}
+
+function createOffer(){
     navigator.getUserMedia(constraints, function (thisStream) { 
         localStream = thisStream;
 
         peerConnection.addStream(localStream);
 
         peerConnection.createOffer(function(offer){
-        
             peerConnection.setLocalDescription(offer)
-    
             send({
                 action: 'offer',
                 data: offer,
-            });
-    
+            })
         }, function(error){
             console.log('createOffer error:', error)});
 
@@ -255,11 +296,12 @@ function handlerOffer(offer, channel_id){
                 action: "answer",
                 data: answer
             })
-        });
+        })
 }
 
 function handlerAnswer(answer){
-    peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+    peerConnection.setRemoteDescription(new RTCSessionDescription(answer)).then(()=>console.log('SET REMOTE DESCRIPTION AFTER ANSWER'));
+
 }
 
 function handlerCandidate(candidate){
@@ -281,7 +323,7 @@ document.querySelector('#audio-checkbox').addEventListener('change',(event)=>{
             document.querySelector('#my_microphone_state').style.visibility = 'visible';
         }
     } else {
-        event.target.checked = true;event.target.checked = true;
+        event.target.checked = !event.target.checked;
     }
 })
 
@@ -299,8 +341,9 @@ document.querySelector('#video-checkbox').addEventListener('change', (event)=>{
             localVideo.style.visibility = 'hidden'
         }
     } else {
-        event.target.checked = true;
+        event.target.checked = !event.target.checked;
     }
+    console.log(peerConnection.readyState);
 })
 
 document.querySelector('#send-msg-btn').addEventListener('click', ()=>{
@@ -397,3 +440,12 @@ document.querySelector('#complaint_btn').addEventListener('click', (event)=> {
     console.log('bebra')
     send_call_ending_status('complaint')
 });
+
+for (let form of document.forms){
+    for (let element in form.elements){
+        element.onkeydown = function(event){
+            event.preventDefault();
+            return null;
+        }
+    }
+}

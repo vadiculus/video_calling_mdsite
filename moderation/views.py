@@ -6,7 +6,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Prefetch
 from .models import CertificationConfirmation, CertificationPhoto, Complaint, StandardComplaint
 from django.views.generic import CreateView
-from .forms import AddCertificationConfirmationForm
+from .forms import AddCertificationConfirmationForm, MailAdminForm
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
 from accounts.models import User
@@ -181,3 +181,16 @@ class CreateStandardComplaint(CreateView):
 
 def create_standard_complaint(request, username):
     user = get_object_or_404(User, username=username)
+
+@require_staff
+def send_admin_message(request, username):
+    user = get_object_or_404(User, username=username)
+    form = MailAdminForm()
+    if request.method == 'POST':
+        form = MailAdminForm(request.POST)
+        if form.is_valid():
+            title = 'Сообщение от Администрации'
+            body = form.cleaned_data['body']
+            send_user_mail(user.email, title=title, body=body)
+            return redirect('accounts:profile', username=user.username)
+    return render(request, 'moderation/write_admin_mail.html', {'user': user, 'form':form})

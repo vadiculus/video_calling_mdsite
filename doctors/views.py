@@ -12,6 +12,7 @@ from django.shortcuts import get_object_or_404
 from accounts.models import User
 from django.http import HttpResponseRedirect, Http404
 from django.urls import reverse_lazy
+from .utils import require_not_superusers
 
 def index(request):
     queryset = Doctor.objects.select_related('user') \
@@ -27,7 +28,7 @@ class DoctorSearchView(ListView):
         qualifications = self.request.GET.get('qualifications') if self.request.GET.get('qualifications') else []
         if not (rating or qualifications):
             return []
-        if self.request.user.is_superuser:
+        if self.request.user.is_staff:
             queryset = Doctor.objects.select_related('user')\
                 .filter(Q(rating__gte=rating) | Q(qualifications__in= qualifications))
         else:
@@ -44,7 +45,7 @@ class CreateReview(CreateView):
     form_class = ReviewForm
 
     def dispatch(self, request, *args, **kwargs):
-        if not request.user.is_doctor:
+        if not request.user.is_doctor and not request.user.is_staff:
             return super().dispatch(request, *args, **kwargs)
         else:
             raise Http404

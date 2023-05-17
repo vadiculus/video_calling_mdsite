@@ -65,7 +65,7 @@ class RegisterDoctorUserView(CreateView):
 class CertificationConfirmationView(CreateView):
     '''Создание профиля доктора и запрос на сертификацию'''
     form_class = RegisterDoctorForm
-    template_name = 'accounts/register.html'
+    template_name = 'accounts/create_profile.html'
     success_url = reverse_lazy('accounts:doctor_success_register_message')
 
     def dispatch(self, request, *args, **kwargs):
@@ -176,8 +176,13 @@ class UpdateClientProfileView(LoginRequiredMixin, UpdateView):
 def ban_user_view(request, username):
     user = get_object_or_404(User, username=username)
     if request.user.is_superuser:
+        if user.is_staff:
+            user.is_banned = True
+            user.is_staff = False
+            user.save()
+            return redirect('accounts:profile', user.username)
         if user.is_superuser:
-            title = 'Вы не имеете права блокировать администраторов'
+            title = 'Вы не можете заблокировать администратора'
             return render(request, 'errors/some_error.html', {'title': title})
         user.is_banned = True
         user.save()
@@ -191,6 +196,11 @@ def unban_user_view(request, username):
         if user.is_superuser:
             title = 'Вы не можете разблокировать администратора'
             return render(request, 'errors/some_error.html', {'title': title})
+        if user.is_staff:
+            user.is_banned = False
+            user.is_staff = True
+            user.save()
+            return redirect('accounts:profile', user.username)
         user.is_banned = False
         user.save()
         return redirect('accounts:profile', user.username)

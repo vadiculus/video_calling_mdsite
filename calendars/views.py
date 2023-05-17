@@ -1,6 +1,7 @@
 import datetime
 
 from django.db.models import Q
+from django.db.models.functions import TruncDay
 from django.shortcuts import render
 from chat.models import OrderedCall
 from django.views.decorators.http import require_POST
@@ -24,15 +25,15 @@ def book_call_view(request, pk):
                                                                           'doctor__user',
                                                                           'doctor__user__balance'), pk=pk)
     ordered_calls = OrderedCall.objects.select_related('visiting_time').prefetch_related('participants')\
-        .filter(participants=request.user, is_success=False)
+        .filter(participants=request.user)
 
     total_price_ordered_calls = sum([call.visiting_time.get_total_price() for call in ordered_calls])
 
-    balance = request.user.balance.balance
-
     if not visiting_time.is_booked:
-        if request.user.is_superuser:
+        if request.user.is_staff or request.user.is_superuser:
             raise Http404
+
+        balance = request.user.balance.balance
 
         if request.method == 'POST':
             if balance < total_price_ordered_calls + visiting_time.get_total_price():
@@ -63,6 +64,21 @@ class CreateVisitingTimeView(CreateView):
         if self.request.user.is_doctor:
             return super().dispatch(request, *args, **kwargs)
         raise Http404
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        calendar = self.request.user.doctor.visiting_time.filter(time__gt=datetime.datetime.utcnow()).annotate(day=TruncDay('time'))\
+                    .values('day','id', 'time','time_end', 'is_booked')
+        calendar_dict = {}
+        for day in calendar:
+            if str(day['day']) in calendar_dict:
+                calendar_dict[str(day['day'])].append({'id': day['id'], 'time': str(day['time']),
+                                                       'time_end': str(day['time_end']), 'is_booked': day['is_booked']})
+            else:
+                calendar_dict[str(day['day'])] = [{'id': day['id'], 'time': str(day['time']),
+                                                   'time_end': str(day['time_end']), 'is_booked': day['is_booked']}]
+        context['calendar'] = calendar_dict
+        return context
 
     def form_valid(self, form):
         '''Тут время переводится из дефолтного UTC выданного формой в часовой пояс клиента, а потом переводится в utc'''

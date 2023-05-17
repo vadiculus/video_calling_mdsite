@@ -10,4 +10,5 @@ urlpatterns = [
     path('conflict-resolution/<int:pk>/<str:res_type>/', views.conflict_resolution, name='conflict_resolution'),
     path('make-user-admin/<str:username>/', views.make_user_admin, name='make_user_admin'),
     path('create-complaint/<str:username>/', views.CreateStandardComplaint.as_view(), name='create_complaint'),
+    path('admin-email/<str:username>/', views.send_admin_message, name='admin_email'),
 ]

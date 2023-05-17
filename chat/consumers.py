@@ -154,6 +154,7 @@ class MessagesConsumer(AsyncWebsocketConsumer):
     '''Для отображения что пользователю звонять и отображения нового сообщения'''
     async def connect(self):
         self.user = self.scope['user']
+        self.group_name = None
         if self.user.is_authenticated:
             self.group_name = f'standard.{self.user.username}'
 

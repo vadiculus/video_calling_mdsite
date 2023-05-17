@@ -74,20 +74,20 @@
 </div>
 <div id="end_call_question" style="display: none;">
     {% if not user.is_doctor %}
-    <form method="post" id="review_form">
+    <form id="review_form">
         {{ review_form.as_p }}
         <button id="review_btn" type="button">Завершить</button>
     </form>
     {% endif %}
     <a href="{% url 'doctors:index' %}">На главную страницу</a><br>
-    <form method="post" id="complaint_form">
+    <form id="complaint_form">
         {{ complaint_form.as_p }}
         <button id="complaint_btn" type="button">Отправить жалобу</button>
     </form>
 </div>
 
 {{ call_id|json_script:"call_id" }}
-{{ call.visiting_time.time_end|json_script:"call_end_time" }}
+{{ call_end_time |json_script:"call_end_time" }}
 <script src="{% static 'chat/js/call_client_script.js' %}"></script>
 <script src="{% static 'chat/js/messages_time.js' %}"></script>
 {% endblock %}

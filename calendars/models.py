@@ -11,7 +11,7 @@ class VisitingTime(models.Model):
     doctor = models.ForeignKey(Doctor, related_name='visiting_time', on_delete=models.CASCADE, verbose_name='Доктор')
     time = models.DateTimeField()
     is_booked = models.BooleanField(default=False, blank=True, verbose_name='Забронировано')
-    max_time = models.IntegerField(default=60, validators=[MaxValueValidator(240), MinValueValidator(15)])
+    max_time = models.IntegerField(default=60, validators=[MaxValueValidator(240), MinValueValidator(20)])
     time_end = models.DateTimeField(null=True, blank=True, verbose_name='Конечное время')
 
     def get_price(self):

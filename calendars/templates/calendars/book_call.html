@@ -5,7 +5,7 @@
 Время: {{ visiting_time.time }}<br>
 Максимальная продолжительность звонка: {{ visiting_time.max_time }}<br>
 Стоимость звонка за полное время: {{ visiting_time.get_total_price }} фантиков<br>
-(Стоимость может варироваться в зависимости от времени)
+(Стоимость может варьироваться в зависимости от времени)
 <form method="post">
     {% csrf_token %}
     <button type="submit">Принять</button>

@@ -2,7 +2,7 @@
 {% load static %}
 {% load chat_filters %}
 {% block content %}
-
+<h2>Административный чат</h2>
 {% if chats %}
 {% for chat in chats %}
 {% with interlocutor=chat|get_interlocutor:user %}

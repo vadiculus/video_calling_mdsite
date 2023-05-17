@@ -36,3 +36,8 @@ class CanselConfirmationCauseForm(forms.Form):
     cause = forms.CharField(label='Причина отклонения', widget=forms.Textarea())
     class Meta:
         fields = '__all__'
+
+class MailAdminForm(forms.Form):
+    body = forms.CharField(label='Текст',widget=forms.Textarea())
+    class Meta:
+        fields = '__all__'

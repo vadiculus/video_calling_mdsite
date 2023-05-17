@@ -22,7 +22,13 @@
 {% if user.is_staff and page_user.is_staff %}
 <span>Администратор</span><br>
 {% endif %}
-{% if user.is_superuser and not page_user.is_superuser  %}
+
+{% if user.is_staff %}
+<span>Количество жалоб: {{ page_user.accused_standard_complaints.count }}</span><br>
+<a href="{% url 'moderation:admin_email' page_user.username %}">Написать email</a><br>
+{% endif %}
+
+{% if user.is_superuser and not page_user.is_staff %}
 <a href="{% url 'moderation:make_user_admin' page_user.username %}">Сделать администратором</a><br>
 {% endif %}
 {% if page_user != user %}
