@@ -1,0 +1,1 @@
+document.querySelector('#id_timezone').value = Intl.DateTimeFormat().resolvedOptions().timeZone;
