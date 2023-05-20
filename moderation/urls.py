@@ -11,4 +11,5 @@ urlpatterns = [
     path('make-user-admin/<str:username>/', views.make_user_admin, name='make_user_admin'),
     path('create-complaint/<str:username>/', views.CreateStandardComplaint.as_view(), name='create_complaint'),
     path('admin-email/<str:username>/', views.send_admin_message, name='admin_email'),
+    path('remove-admin-status/<str:username>/', views.remove_admin_status, name='remove_admin_status')
 ]

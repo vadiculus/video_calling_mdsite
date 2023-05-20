@@ -8,6 +8,7 @@ from django.views.decorators.http import require_POST
 from chat.forms import CreateCallForm
 from django.shortcuts import get_object_or_404, redirect, reverse
 from calendars.models import VisitingTime
+from moderation.utils import require_not_banned
 from .forms import VisitingTimeForm
 from doctors.utils import require_clients
 from django.db import transaction
@@ -18,8 +19,11 @@ from django.http import Http404, HttpResponseRedirect
 import pytz
 from mdsite.utils import server_tz
 from chat.tasks import send_user_mail
+from django.contrib.auth.views import login_required
 
-@require_clients
+@login_required
+
+@require_not_banned
 def book_call_view(request, pk):
     visiting_time = get_object_or_404(VisitingTime.objects.select_related('doctor',
                                                                           'doctor__user',
@@ -28,6 +32,9 @@ def book_call_view(request, pk):
         .filter(participants=request.user)
 
     total_price_ordered_calls = sum([call.visiting_time.get_total_price() for call in ordered_calls])
+
+    if request.user == visiting_time.doctor.user:
+        return redirect('calendars:delete_visiting_time', pk=visiting_time.id)
 
     if not visiting_time.is_booked:
         if request.user.is_staff or request.user.is_superuser:
@@ -111,4 +118,21 @@ class CreateVisitingTimeView(CreateView):
 
     def get_success_url(self):
         return reverse_lazy('accounts:profile', kwargs={'username':self.request.user.username})
+
+def delete_visiting_time(request, pk):
+    visiting_time = get_object_or_404(VisitingTime.objects.select_related('ordered_call', 'doctor__user'), pk=pk)
+
+    if request.method == 'POST':
+        if request.user == visiting_time.doctor.user:
+            if not visiting_time.is_booked:
+                visiting_time.delete()
+            else:
+                message_body = f'Врач {visiting_time.doctor.user.full_name} отменил назначеный звонок'
+                send_user_mail.delay(visiting_time.ordered_call.get_client().email, 'Отмена конференции', message_body)
+                visiting_time.delete()
+            return redirect('accounts:profile', request.user.username)
+        else:
+            raise Http404
+    else:
+        return render(request, 'calendars/delete_visiting_time.html')
 

@@ -42,3 +42,6 @@ def delete_old_visiting_time():
         except OrderedCall.DoesNotExist:
             visiting_time.delete()
             continue
+        except AttributeError:
+            visiting_time.delete()
+            continue

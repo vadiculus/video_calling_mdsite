@@ -159,15 +159,41 @@ def conflict_resolution(request, pk, res_type):
 def make_user_admin(request, username):
     user = get_object_or_404(User, username=username)
     if request.user.is_superuser:
-        user.is_staff = True
-        user.save()
-        return redirect('accounts:profile', username)
+        if not user.is_doctor:
+            user.is_staff = True
+            user.save()
+            return redirect('accounts:profile', username)
+        else:
+            title = 'Доктор не может быть администратором'
+            body = 'Для создания администратора сделайте клиентский аккаунт'
+            return render(request, 'errors/some_error.html', {'title': title, 'body': body})
+    raise Http404
+
+def remove_admin_status(request, username):
+    user = get_object_or_404(User, username=username)
+    if request.user.is_superuser:
+        if not user.is_superuser:
+            user.is_staff = False
+            user.save()
+            return redirect('accounts:profile', username)
     raise Http404
 
 
 class CreateStandardComplaint(CreateView):
     form_class = CopmlaintCauseForm
     template_name = 'moderation/complaint.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.is_authenticated:
+            if not request.user.is_banned:
+                return super().dispatch(request, *args, **kwargs)
+            else:
+                title = 'Ваш аккаунт заблокирован'
+                body = 'Вы не можете пользоваться этим функционалом так как ваш аккаунт заблокирован'
+                return render(request, 'errors/some_error.html', {'title': title, 'body': body})
+        else:
+            raise Http404
+
 
     def get_success_url(self):
         return reverse_lazy('accounts:profile',  kwargs={'username':self.request.user.username})

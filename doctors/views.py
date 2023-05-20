@@ -45,10 +45,10 @@ class CreateReview(CreateView):
     form_class = ReviewForm
 
     def dispatch(self, request, *args, **kwargs):
-        if not request.user.is_doctor and not request.user.is_staff:
-            return super().dispatch(request, *args, **kwargs)
-        else:
-            raise Http404
+        if request.user.is_authenticated:
+            if not request.user.is_doctor and not request.user.is_staff:
+                return super().dispatch(request, *args, **kwargs)
+        raise Http404
 
     def get_success_url(self):
         return reverse_lazy('accounts:profile', kwargs={'username': self.user_doctor.username})

@@ -12,7 +12,7 @@ def visiting_time_validator(value):
 
 class VisitingTimeForm(forms.ModelForm):
     timezone = forms.CharField(max_length=200, widget=forms.HiddenInput())
-    time = forms.DateTimeField(widget=forms.DateTimeInput(), validators=[visiting_time_validator])
+    time = forms.DateTimeField(label='Дата и время', widget=forms.DateTimeInput(), validators=[visiting_time_validator])
 
     class Meta:
         model = VisitingTime

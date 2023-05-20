@@ -18,19 +18,29 @@
 </div>
 {% endif %}
 <br>
-<span>{{ page_user.full_name }}</span>
+<span>{{ page_user.full_name }}</span><br>
+
+{% if user == page_user or user.is_superuser %}
+<span>Логин: {{ page_user.username }}</span><br>
+{% endif %}
+
 {% if user.is_staff and page_user.is_staff %}
 <span>Администратор</span><br>
 {% endif %}
 
 {% if user.is_staff %}
 <span>Количество жалоб: {{ page_user.accused_standard_complaints.count }}</span><br>
-<a href="{% url 'moderation:admin_email' page_user.username %}">Написать email</a><br>
 {% endif %}
 
 {% if user.is_superuser and not page_user.is_staff %}
 <a href="{% url 'moderation:make_user_admin' page_user.username %}">Сделать администратором</a><br>
+<a href="{% url 'moderation:admin_email' page_user.username %}">Написать email</a><br>
 {% endif %}
+
+{% if user.is_superuser and page_user.is_staff %}
+<a href="{% url 'moderation:remove_admin_status' page_user.username %}">Убрать статус администратора</a><br>
+{% endif %}
+
 {% if page_user != user %}
 <a href="{% url 'moderation:create_complaint' page_user.username %}">Подать жалобу</a><br>
 {% endif %}

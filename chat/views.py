@@ -107,11 +107,13 @@ def create_chat(request, username):
     title = 'Доктора не могут создавать чаты'
     return render(request, 'errors/some_error.html', {'title':title})
 
+@require_not_banned
 @require_not_superusers
 @require_premium_and_doctors
 def premium_chat_list_view(request):
-    chats = PremiumChat.objects.prefetch_related('participants').filter(participants=request.user)
-    return render(request, 'chat/premium_chat_list.html', {'chats':chats})
+    if not request.user.is_banned:
+        chats = PremiumChat.objects.prefetch_related('participants').filter(participants=request.user)
+        return render(request, 'chat/premium_chat_list.html', {'chats':chats})
 
 @login_required
 def admin_chat_list_view(request):
@@ -119,7 +121,6 @@ def admin_chat_list_view(request):
     return render(request, 'chat/admin_chat_list.html', {'chats':chats})
 
 @require_not_banned
-@never_cache
 def ordered_call_view(request, pk):
     ordered_call = get_object_or_404(OrderedCall.objects.select_related('visiting_time'), pk=pk)
     if ordered_call.is_ended:
@@ -236,7 +237,7 @@ def cancel_ordered_call(request, pk):
     if call.get_doctor() == request.user:
         if not call.is_active():
             message_body = f'Врач { call.visiting_time.doctor } отменил назначеный звонок'
-            send_user_mail(call.get_client().email, 'Отмена конференции', message_body)
+            send_user_mail.delay(call.get_client().email, 'Отмена конференции', message_body)
             call.visiting_time.delete()
         else:
             messages.error(request, 'Звонок уже активен. Вы не можете его отменить')

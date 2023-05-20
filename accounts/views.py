@@ -1,6 +1,7 @@
 from django.shortcuts import render
 from django.views.generic import CreateView, UpdateView
 from accounts.models import User
+from moderation.utils import require_not_banned
 from .forms import (RegisterClientForm,
                     RegisterDoctorForm,
                     RegisterUserForm,
@@ -122,12 +123,12 @@ def profile(request, username):
 
             if user == request.user:
                 calendar = user.doctor.visiting_time.filter(time__gt=datetime.datetime.utcnow()).annotate(day=TruncDay('time'))\
-                    .values('day','id', 'time','time_end', 'is_booked')
+                    .order_by('day').values('day','id', 'time','time_end', 'is_booked')
             else:
                 rating_form = ReviewForm()
                 calendar = user.doctor.visiting_time.filter(time__gt=datetime.datetime.utcnow()).annotate(day=TruncDay('time'))\
                     .filter(is_booked=False)\
-                    .values('day', 'id', 'time','time_end', 'is_booked')
+                    .order_by('day').values('day', 'id', 'time','time_end', 'is_booked')
 
             calendar_dict = {}
             for day in calendar:
@@ -143,7 +144,8 @@ def profile(request, username):
                                                                    'review_form':ReviewForm()})
         else:
             return render(request,'accounts/client_profile.html', {'page_user':user})
-    return render(request, 'accounts/banned_user.html', {'page_user':user})
+    else:
+        return render(request, 'accounts/banned_user.html', {'page_user':user})
 
 class UpdateDoctorProfileView(LoginRequiredMixin, UpdateView):
     form_class = UpdateDoctorProfileForm
@@ -182,7 +184,17 @@ def ban_user_view(request, username):
             user.save()
             return redirect('accounts:profile', user.username)
         if user.is_superuser:
+            title = 'Вы не можете заблокировать суперпользователя'
+            return render(request, 'errors/some_error.html', {'title': title})
+        user.is_banned = True
+        user.save()
+        return redirect('accounts:profile', user.username)
+    elif request.user.is_staff:
+        if user.is_staff:
             title = 'Вы не можете заблокировать администратора'
+            return render(request, 'errors/some_error.html', {'title': title})
+        elif user.is_superuser:
+            title = 'Вы не можете заблокировать суперпользователя'
             return render(request, 'errors/some_error.html', {'title': title})
         user.is_banned = True
         user.save()
@@ -194,7 +206,7 @@ def unban_user_view(request, username):
     user = get_object_or_404(User, username=username)
     if request.user.is_superuser:
         if user.is_superuser:
-            title = 'Вы не можете разблокировать администратора'
+            title = 'Вы не можете разблокировать суперпользователя'
             return render(request, 'errors/some_error.html', {'title': title})
         if user.is_staff:
             user.is_banned = False
@@ -204,9 +216,20 @@ def unban_user_view(request, username):
         user.is_banned = False
         user.save()
         return redirect('accounts:profile', user.username)
+    elif request.user.is_staff:
+        if user.is_superuser:
+            title = 'Вы не можете разблокировать суперпользователя'
+            return render(request, 'errors/some_error.html', {'title': title})
+        if user.is_staff:
+            title = 'Вы не можете разблокировать администратора'
+            return render(request, 'errors/some_error.html', {'title': title})
+        user.is_banned = False
+        user.save()
+        return redirect('accounts:profile', user.username)
     else:
         raise Http404
 
+@require_not_banned
 @require_clients
 def buy_premium_account(request):
     user = request.user

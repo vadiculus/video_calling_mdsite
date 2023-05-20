@@ -51,7 +51,6 @@ function end_call(){
     document.querySelector('#end_call_question').style.display = 'none';
     document.querySelector('#call_end_info').style.display = 'block';
     send_call_ending_status('success');
-    ended = true;
     send({
         action: 'call_end',
     })
@@ -65,7 +64,6 @@ function Timer(){
         clearInterval(timer);
         end_call();
     } else {
-        console.log(endTime);
         let date = new Date();
         let timestamp = Math.floor((endTime - date) / 1000);
         let hours = Math.floor(timestamp / 60 / 60) < 10 ? `0${Math.floor(timestamp / 60 / 60)}`: Math.floor(timestamp / 60 / 60); 
@@ -265,6 +263,9 @@ function createOffer(){
         localStream = thisStream;
 
         peerConnection.addStream(localStream);
+
+        localStream.getVideoTracks()[0].enabled = document.querySelector('#video-checkbox').checked;
+        localStream.getAudioTracks()[0].enabled = document.querySelector('#audio-checkbox').checked;
 
         peerConnection.createOffer(function(offer){
             peerConnection.setLocalDescription(offer)

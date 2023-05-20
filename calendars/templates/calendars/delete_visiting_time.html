@@ -1,0 +1,14 @@
+{% extends 'doctors/base.html' %}
+{% load static %}
+{% block content %}
+<h2>Точно хотите удалить?</h2>
+<form method="post">
+    {% csrf_token %}
+    <button type="submit">Удалить</button>
+</form>
+
+{% for error in errors %}
+<p>{{ error }}</p>
+{% endfor %}
+
+{% endblock %}

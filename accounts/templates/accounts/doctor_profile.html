@@ -19,7 +19,12 @@
 </div>
 {% endif %}
 <span>Имя: {{ page_user.full_name }}</span><br>
-<span>BIO: {{ page_user.doctor.service_cost}}</span><br>
+<span>Стоимость услуг за час: {{ page_user.doctor.service_cost}}</span><br>
+
+{% if user == page_user or user.is_superuser %}
+<span>Логин: {{ page_user.username }}</span>
+{% endif %}
+
 <span>BIO: {{ page_user.doctor.bio }}</span><br><br>
 {% if user.is_staff %}
 <span>Количество жалоб: {{ page_user.accused_standard_complaints.count }}</span><br>
@@ -77,7 +82,7 @@
 <a href="{% url 'calendars:create_visiting_time' %}">Добавить время для визита</a><br>
 {% endif %}
 
-{% if page_user != user and not user.is_staff %}
+{% if page_user != user and not user.is_staff and not user.is_banned and user.is_authenticate %}
 <form action="{% url 'doctors:create_review' page_user.username %}" method="post">
     {% csrf_token %}
     {{ review_form.as_p }}

@@ -2,7 +2,7 @@
 {% load static %}
 {% block content %}
 
-{% if user.is_superuser %}
+{% if user.is_staff or user.is_superuser %}
 <h2>Заблокирован</h2>
 <br>
 {% if page_user.photo %}
@@ -14,7 +14,7 @@
 <h1>Данный пользователь заблокирован</h1>
 {% else %}
 <h1>Вы были заблокированы</h1>
-<p>Вы можете написать в поддержку нашего сайта</p>
+<!--<p>Вы можете написать в поддержку нашего сайта</p>-->
 {% endif %}
 
 

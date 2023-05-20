@@ -25,6 +25,8 @@ for (const day of Object.keys(calendar_data)){
         let hour_end = time_end.getHours() < 10 ? '0' + time_end.getHours() : time_end.getHours();
         let minute_end = time_end.getMinutes() < 10 ? '0' + time_end.getMinutes() : time_end.getMinutes();
         time_element.innerHTML = `${hour}:${minute}-${hour_end}:${minute_end}`;
+
+        day_element.append(document.createElement('br'));
         day_element.append(time_element);
     }
     calendar_container.append(day_element);
