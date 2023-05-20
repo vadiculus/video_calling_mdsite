@@ -6,8 +6,10 @@ from django.core.asgi import get_asgi_application
 from channels.security.websocket import AllowedHostsOriginValidator
 
 import chat.routing
+import django
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'mdsite.settings')
+django.setup()
 
 django_asgi_app = get_asgi_application()
 
