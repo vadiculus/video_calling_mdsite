@@ -7,7 +7,7 @@ from channels.security.websocket import AllowedHostsOriginValidator
 
 import chat.routing
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'webrtcsite.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'mdsite.settings')
 
 django_asgi_app = get_asgi_application()
 
