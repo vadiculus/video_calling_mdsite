@@ -7,80 +7,83 @@
 {% endblock %}
 
 {% block content %}
-<h2 id="connection_info" style="display: none">Соеденение потеряно</h2>
+<h2 id="connection_info" style="display: none">Lost connection</h2>
 
 <div id="call_interface_container">
-    <label>Камера: <input type="checkbox" checked id="video-checkbox" value="Включить камеру"><br>
-    </label>
-    <label>Микрофон: <input type="checkbox" checked id="audio-checkbox" value="Включить камеру"><br>
-    </label>
-    <span id="timer">Время до конца: </span><br>
-    <span>{{ user.full_name }}</span><br>
+    <span id="timer"> </span><br>
     <div class="video_container" style="background: grey">
-        {% if user.photo %}
-        <div class="user_photo" style="background: url({{ user.photo.url }}) center no-repeat;
-                background-size: auto 100%;
-                border-radius: 100%;
-                width:100px;
-                height: 100px">
+        <div class="user_call_info">
+            {% if user.photo %}
+            <div class="user_photo" style="background: url({{ user.photo.url }}) center no-repeat;
+                    background-size: auto 100%;
+                    border-radius: 100%;
+                    width:60px;
+                    height: 60px">
+            </div>
+            {% else %}
+            <div class="user_photo" style="background: url({% static 'accounts/img/user_icon.png' %}) center no-repeat;
+                    background-size: auto 100%;
+                    border-radius: 100%;
+                    width:60px;
+                    height: 60px">
+            </div>
+            {% endif %}
+            <span>{{ user.full_name }}</span>
         </div>
-        {% else %}
-        <div class="user_photo" style="background: url({% static 'accounts/img/user_icon.png' %}) center no-repeat;
-                background-size: auto 100%;
-                border-radius: 100%;
-                width:100px;
-                height: 100px">
-        </div>
-        {% endif %}
-        <span style="visibility: hidden" id='my_microphone_state' >Микрофон выключен</span>
+        <span style="visibility: hidden" id='my_microphone_state' >Microphone off</span>
         <video muted autoplay id="local-video" width="300" height="200"></video>
-        <button id="end_call_btn" type="button">Завершить звонок</button>
-    </div><br>
-    <span>{{ interlocutor.full_name }}</span><br>
-    <div class="video_container" style="background: grey">
-        {% if interlocutor.photo %}
-        <div class="user_photo" style="background: url({{ interlocutor.photo.url }}) center no-repeat;
-                background-size: auto 100%;
-                border-radius: 100%;
-                width:100px;
-                height: 100px">
+
+        <div class="user_call_info">
+            {% if interlocutor.photo %}
+            <div class="user_photo" style="background: url({{ interlocutor.photo.url }}) center no-repeat;
+                    background-size: auto 100%;
+                    border-radius: 100%;
+                    width:60px;
+                    height: 60px">
+            </div>
+            {% else %}
+            <div class="user_photo" style="background: url({% static 'accounts/img/user_icon.png' %}) center no-repeat;
+                    background-size: auto 100%;
+                    border-radius: 100%;
+                    width:60px;
+                    height: 60px">
+            </div>
+            {% endif %}
+            <span>{{ interlocutor.full_name }}</span>
         </div>
-        {% else %}
-        <div class="user_photo" style="background: url({% static 'accounts/img/user_icon.png' %}) center no-repeat;
-                background-size: auto 100%;
-                border-radius: 100%;
-                width:100px;
-                height: 100px">
-        </div>
-        {% endif %}
-        <span style="visibility: hidden" id='interlocutor_microphone_state'>Микрофон выключен</span>
+        <span style="visibility: hidden" id='interlocutor_microphone_state'>Microphone off</span>
         <video autoplay id="remote-video" width="300" height="200"></video>
-        <h3 style="display: none" id="connection_state">Отключен</h3>
-    </div>
+        <h3 style="display: none" id="connection_state">Disconnected</h3>
+    </div><br>
 
     <ul id="chat-log">
     </ul>
-
     <textarea id="chat-input" type="text"></textarea>
-    <input id="send-msg-btn" onclick="" type="button" value="Отправить"><br>
+    <input id="send-msg-btn" onclick="" type="button" value="Send"><br>
+    <label>Camera: <input type="checkbox" checked id="video-checkbox" value="Camera on"><br>
+    </label>
+    <label>Microphone: <input type="checkbox" checked id="audio-checkbox" value="Micro on"><br>
+    </label>
+
+    <button id="end_call_btn" type="button">End call</button>
 </div>
 
 <div id="call_end_info" style="display: none">
     <h1>
-        Звонок успешно завершен.
+        Call successfully ended
     </h1>
 </div>
 <div id="end_call_question" style="display: none;">
     {% if not user.is_doctor %}
     <form id="review_form">
         {{ review_form.as_p }}
-        <button id="review_btn" type="button">Завершить</button>
+        <button id="review_btn" type="button">End call</button>
     </form>
     {% endif %}
-    <a href="{% url 'doctors:index' %}">На главную страницу</a><br>
+    <a href="{% url 'doctors:index' %}">On main page</a><br>
     <form id="complaint_form">
         {{ complaint_form.as_p }}
-        <button id="complaint_btn" type="button">Отправить жалобу</button>
+        <button id="complaint_btn" type="button">File a complaint</button>
     </form>
 </div>
 

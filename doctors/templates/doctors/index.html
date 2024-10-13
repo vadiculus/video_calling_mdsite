@@ -1,22 +1,25 @@
 {% extends 'doctors/base.html' %}
 {% load static %}
 {% block content %}
-<form action="{% url 'doctors:doctor_search' %}" method="get">
+<form class="search_doctors_form" action="{% url 'doctors:doctor_search' %}" method="get">
+    <h3 style="margin: 0;">Search for doctors</h3>
     {{ form.as_p }}
-    <button type="submit">Поиск</button>
+    <button type="submit">Search</button>
 </form>
 
-<p>Красивый текст о сайте</p>
+<!--<p>Красивый текст о сайте</p>-->
 
 {% for doctor in doctors  %}
+{% if doctor.is_confirmed and not doctor.user.is_banned %}
 <div class="doctor_search_item" style="border: 1px solid grey">
     <a href="{% url 'accounts:profile' doctor.username %}">{{ doctor }}</a><br>
     {% if doctor.rating %}
-    <span>Рейтинг: {{ doctor.rating }}</span>
+    <span>Rating: {{ doctor.rating }}</span>
     {% else %}
-    <span>Рейтинг: Без рейтинга</span>
+    <span>Rating: No Rating</span>
     {% endif %}
 </div>
+{% endif %}
 {% endfor %}
 
 {% endblock %}

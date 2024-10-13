@@ -24,7 +24,7 @@
 <a class="chat_item" href="{% url 'chat:admin_chat' chat.id %}" data-id="{{ chat.id }}">
     {{ chat|get_interlocutor:user }}
 </a><br>
-<span>Новые сообщеения: </span><span data-chat-id="{{ chat.id }}">{{ chat|not_read_admin_messages:user }}</span></span>
+<span>New Messages</span><div class="new_messages_indicator"><span data-chat-id="{{ chat.id }}">{{ chat|not_read_admin_messages:user }}</span></div>
 {% endwith %}
 <br>
 {% endfor %}

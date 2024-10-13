@@ -37,6 +37,7 @@ class CallConsumer(AsyncWebsocketConsumer):
     async def receive(self, text_data=None, bytes_data=None):
         data = json.loads(text_data)
         data['peer'] = self.user.username
+        # print(data)
 
         if data['action'] == 'get_peer_name':
             data['data'] = {'peer':self.user.username, 'full_name':self.user.full_name}
@@ -48,7 +49,6 @@ class CallConsumer(AsyncWebsocketConsumer):
         elif data['action'] == 'end_call':
             await self.channel_layer.group_send(self.room_name, {'type': 'send_message', 'data': data})
         elif data['action'] == 'incoming_call':
-            print('incoming_call')
             if not self.call.call_start:
                 print('incoming_call')
                 await self.channel_layer.group_send(f'standard.{self.interlocutor.username}',
@@ -66,7 +66,7 @@ class CallConsumer(AsyncWebsocketConsumer):
 
     async def send_message(self, event):
         data = json.dumps(event['data'])
-
+        print(event['data']['action'])
         await self.send(data)
 
 

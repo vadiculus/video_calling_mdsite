@@ -9,6 +9,6 @@
 
 {% block submit_buttons_bottom %}
 
-<a href="{% url 'moderation:conflict_resolution' original.pk 'transfer-money' %}" class="blue_button" type="button" value="Подтвердить">Перевести деньги доктору</a>
-<a href="{% url 'moderation:conflict_resolution' original.pk 'refusal' %}" class="blue_button" type="button" value="Подтвердить">Отвергнуть</a>
+<a href="{% url 'moderation:conflict_resolution' original.pk 'transfer-money' %}" class="blue_button" type="button" value="Accept">Transfer money to the doctor</a>
+<a href="{% url 'moderation:conflict_resolution' original.pk 'refusal' %}" style="color:red;" class="blue_button" type="button" value="Accept">Reject</a>
 {% endblock %}

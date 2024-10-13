@@ -7,7 +7,7 @@ class CreateCallForm(forms.ModelForm):
     def __init__(self, max_time=60, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['ordered_time'] = forms.IntegerField(
-            label = 'Продолжительность звонка',
+            label = 'Call duration',
             # help_text= '''Если ваше заказаное время меньше
             # половины максимального времени назначеного доктором,
             # то вы платите половину суммы.''',

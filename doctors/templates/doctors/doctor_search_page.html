@@ -8,21 +8,23 @@
 
 {% if object_list %}
 {% for doctor in object_list  %}
-{% if doctor.user.is_banned %}
-<a href="{% url 'accounts:profile' doctor.username %}">Заблокирован: {{ doctor }}</a><br>
-{% else %}
+<!--{% if doctor.user.is_banned %}-->
+<!--<a href="{% url 'accounts:profile' doctor.username %}">Заблокирован: {{ doctor }}</a><br>-->
+<!--{% else %}-->
+{% if doctor.is_confirmed and not doctor.user.is_banned %}
 <div class="doctor_search_item" style="border: 1px solid grey">
     <a href="{% url 'accounts:profile' doctor.username %}">{{ doctor }}</a><br>
     {% if doctor.rating %}
-    <span>Рейтинг: {{ doctor.rating }}</span>
+    <span>Rating: {{ doctor.rating }}</span>
     {% else %}
-    <span>Рейтинг: Без рейтинга</span>
+    <span>Rating: No Rating</span>
     {% endif %}
 </div>
 {% endif %}
+{% endif %}
 {% endfor %}
 {% else %}
-<h3>Не было найдено врачей по вашему запросу</h3>
+<h3>No doctors were found matching your request</h3>
 {% endif %}
 
 

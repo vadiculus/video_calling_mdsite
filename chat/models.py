@@ -24,15 +24,15 @@ class OrderedCall(models.Model):
     visiting_time = models.OneToOneField(VisitingTime,
                                          related_name='ordered_call',
                                          on_delete=models.CASCADE,
-                                         verbose_name='Время визита')
+                                         verbose_name='Visit time')
     participants = models.ManyToManyField(User, related_name='ordered_calls')
     ordered_time = models.IntegerField(
         default=60,
         validators=[MaxValueValidator(240)],
-        verbose_name='Время звонка') # Выделеное время заказчика
+        verbose_name='Call time') # Выделеное время заказчика
     call_start = models.DateTimeField(null=True, blank=True)
     call_end = models.DateTimeField(null=True,default=None, blank=True)
-    is_ended = models.BooleanField(default=False, verbose_name='Завершеный')
+    is_ended = models.BooleanField(default=False, verbose_name='Ended')
     have_complaint = models.BooleanField(default=False)
 
     def is_active(self):
@@ -54,8 +54,8 @@ class OrderedCall(models.Model):
             total_price = self.get_total_price(doctor, site_balance, half_sum=half_sum)
             client.balance.balance -= total_price
             site_balance.balance += self.get_percent(doctor, site_balance, half_sum=half_sum)
-            title = 'Успешный звонок!'
-            body = f'Звонок был успешно проведен. С вашего счета была снята сумма: {total_price} фантиков'
+            title = 'Call is successful!'
+            body = f'The call was successfully completed. Amount has been withdrawn from your account: {total_price} фантиков'
             send_user_mail.delay(client.email, title, body)
             site_balance.save(), client.balance.save(), doctor.balance.save(),
             self.visiting_time.delete()

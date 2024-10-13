@@ -21,7 +21,7 @@ class RegisterClientForm(UserCreationForm):
 
 class RegisterDoctorForm(forms.ModelForm):
     certification_photos = forms.ImageField(help_text='От 1 до 5 фото',
-        label='Фото сертификаций',
+        label='Photo certification',
         widget=forms.FileInput(attrs={'multiple': True}))
         
     class Meta:
@@ -31,7 +31,7 @@ class RegisterDoctorForm(forms.ModelForm):
             'qualifications': forms.CheckboxSelectMultiple(attrs={'help_text':'От 1 до 5 фото'})
         }
 class UpdateDoctorProfileForm(forms.ModelForm):
-    photo = forms.ImageField(label='Фото',required=False)
+    photo = forms.ImageField(label='Photo',required=False)
     def save(self, commit=True):
         doctor = super().save(commit)
         photo = self.cleaned_data.get('photo')

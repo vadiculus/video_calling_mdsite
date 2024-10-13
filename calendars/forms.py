@@ -8,11 +8,11 @@ def visiting_time_validator(value):
     if value > pytz.UTC.localize(datetime.datetime.now()):
         return True
     else:
-        raise ValidationError('Эта дата уже прошла. Поставьте дату на будущее время')
+        raise ValidationError('This date has already passed. Set the date to the future tense.')
 
 class VisitingTimeForm(forms.ModelForm):
     timezone = forms.CharField(max_length=200, widget=forms.HiddenInput())
-    time = forms.DateTimeField(label='Дата и время', widget=forms.DateTimeInput(), validators=[visiting_time_validator])
+    time = forms.DateTimeField(label='Date and time', widget=forms.DateTimeInput(), validators=[visiting_time_validator])
 
     class Meta:
         model = VisitingTime

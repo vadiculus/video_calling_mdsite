@@ -3,17 +3,17 @@
 {% block content %}
 
 {% if user.is_staff or user.is_superuser %}
-<h2>Заблокирован</h2>
+<h2>Banned</h2>
 <br>
 {% if page_user.photo %}
 <img src="{{ profile.photo.url }}">
 {% endif %}
 <span>{{ page_user.full_name }}</span>
-<a href="{% url 'accounts:unban' page_user.username %}">Разблокировать</a><br>
+<a href="{% url 'accounts:unban' page_user.username %}">Unban</a><br>
 {% elif user != page_user %}
-<h1>Данный пользователь заблокирован</h1>
+<h1>This user is banned</h1>
 {% else %}
-<h1>Вы были заблокированы</h1>
+<h1>You are banned</h1>
 <!--<p>Вы можете написать в поддержку нашего сайта</p>-->
 {% endif %}
 

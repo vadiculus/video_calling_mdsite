@@ -2,11 +2,11 @@
 {% load static %}
 {% block content %}
 
-<span>Жалоба на пользователя: {{ page_user.username }}</span>
+<span>Complaint about : {{ page_user.fullname }}</span>
 <form method="post" enctype="multipart/form-data">
     {% csrf_token %}
     {{ form.as_p }}
-    <button type="submit">Подать жалобу</button>
+    <button type="submit">File a complaint</button>
 </form>
 
 

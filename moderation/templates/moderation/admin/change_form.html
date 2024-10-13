@@ -19,7 +19,7 @@
 
 {% block submit_buttons_bottom %}
 
-<a href="{% url 'moderation:confirmation' original.pk 'confirmed' %}" class="blue_button" type="button" value="Подтвердить">Подтвердить</a>
-<a href="{% url 'moderation:confirmation' original.pk 'refusal' %}" class="blue_button" type="button" value="Подтвердить">Отклонить</a>
+<a href="{% url 'moderation:confirmation' original.pk 'confirmed' %}" class="blue_button" type="button" value="Подтвердить">Accept</a>
+<a href="{% url 'moderation:confirmation' original.pk 'refusal' %}" class="blue_button" type="button" value="Подтвердить" style="color:red;">Reject</a>
 
 {% endblock %}

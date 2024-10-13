@@ -8,6 +8,7 @@ let full_name;
 let localStream;
 let remoteStream;
 let videoTrack;
+let dataChannel;
 const endTimeStr = JSON.parse(document.querySelector('#call_end_time').textContent);
 const endTime = new Date(endTimeStr);
 const csrftoken = getCookie('csrftoken');
@@ -66,10 +67,10 @@ function Timer(){
     } else {
         let date = new Date();
         let timestamp = Math.floor((endTime - date) / 1000);
-        let hours = Math.floor(timestamp / 60 / 60) < 10 ? `0${Math.floor(timestamp / 60 / 60)}`: Math.floor(timestamp / 60 / 60); 
+        let hours = Math.floor(timestamp / 60 / 60) < 10 ? `0${Math.floor(timestamp / 60 / 60)}`: Math.floor(timestamp / 60 / 60);
         let minutes = Math.floor(timestamp / 60) - (hours * 60) < 10 ? `0${Math.floor(timestamp / 60) - (hours * 60)}`: Math.floor(timestamp / 60) - (hours * 60);
         let seconds = timestamp % 60 < 10 ? `0${timestamp % 60}`: timestamp % 60 ;
-        document.querySelector('#timer').innerHTML = 'Время до конца: ' + hours + ':' + minutes + ':' + seconds; 
+        document.querySelector('#timer').innerHTML = 'Time Until Call Ends: ' + hours + ':' + minutes + ':' + seconds;
     }
 }
 
@@ -83,7 +84,7 @@ function onMessage(event){
     }
 
     console.log(message);
-    
+
     switch (message.action){
         case 'offer':
             handlerOffer(message.data);
@@ -157,7 +158,7 @@ function onMessage(event){
         case 'end_call':
             end_call();
             break;
-            
+
         case 'complaint':
             window.location.href = `http://${window.location.host}/moderation/complaint-info/accused/`;
             break;
@@ -247,19 +248,25 @@ function initialize(first_time=false){
         }
     }
 
+    peerConnection.ondatachannel = function(event){
+        dataChannel = event.channel;
+    }
+
+    dataChannel = peerConnection.createDataChannel('dataChannel');
+
     peerConnection.ontrack = function(event){
         const reStream = event.streams[0]
         reStream.getVideoTracks()[0].onended = (event)=>{
             remoteVideo.style.visibility = 'hidden'
-        } 
+        }
         remoteVideo.srcObject = reStream;
     }
 
-    createOffer();
+    getMedia();
 }
 
-function createOffer(){
-    navigator.getUserMedia(constraints, function (thisStream) { 
+function getMedia(){
+    navigator.mediaDevices.getUserMedia(constraints).then((thisStream)=>{
         localStream = thisStream;
 
         peerConnection.addStream(localStream);
@@ -267,20 +274,25 @@ function createOffer(){
         localStream.getVideoTracks()[0].enabled = document.querySelector('#video-checkbox').checked;
         localStream.getAudioTracks()[0].enabled = document.querySelector('#audio-checkbox').checked;
 
-        peerConnection.createOffer(function(offer){
-            peerConnection.setLocalDescription(offer)
-            send({
-                action: 'offer',
-                data: offer,
-            })
-        }, function(error){
-            console.log('createOffer error:', error)});
+        createOffer();
 
         localVideo.srcObject = localStream;
-    
-    }, function (error) {
-        console.log('error: ', error)
-    }); 
+
+    }).catch((error)=>{
+        createOffer();
+        console.log('getUserMedia Error: ', error)
+    });
+}
+
+function createOffer(){
+    peerConnection.createOffer(function(offer){
+        peerConnection.setLocalDescription(offer)
+        send({
+            action: 'offer',
+            data: offer,
+        })
+    }, function(error){
+        console.log('createOffer error:', error)});
 }
 
 function handlerOffer(offer, channel_id){
@@ -312,7 +324,7 @@ function handlerCandidate(candidate){
 document.querySelector('#audio-checkbox').addEventListener('change',(event)=>{
     if (clientSocket.readyState === 1){
         console.log('open');
-        send({   
+        send({
             full_name,
             action: 'change_audio',
             data: event.target.checked,
@@ -362,7 +374,7 @@ document.querySelector('#send-msg-btn').addEventListener('click', ()=>{
         message_item.textContent = `${full_name}: ${message.value}`;
         chat_log.append(message_item);
         message.value = '';
-    }    
+    }
 })
 
 document.querySelector('#chat-input').addEventListener('keydown', (event)=>{
@@ -438,8 +450,7 @@ if (review_btn){
 }
 
 document.querySelector('#complaint_btn').addEventListener('click', (event)=> {
-    console.log('bebra')
-    send_call_ending_status('complaint')
+    send_call_ending_status('complaint');
 });
 
 for (let form of document.forms){

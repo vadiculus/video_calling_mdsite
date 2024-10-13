@@ -2,7 +2,6 @@
 {% load static %}
 {% block content %}
 
-<h2>Список чатов</h2>
 {% if interlocutor.photo %}
 <div class="user_photo" style="background: url({{ interlocutor.photo.url }}) center no-repeat;
             background-size: auto 100%;
@@ -20,16 +19,21 @@
     </div>
 {% endif %}
 <a href="{% url 'accounts:profile' interlocutor.username %}"><h2>{{ interlocutor.full_name }}</h2></a>
-<a href="{% url 'moderation:create_complaint' interlocutor.username %}">Подать жалобу</a>
+<a href="{% url 'moderation:create_complaint' interlocutor.username %}">File a complaint</a>
 
-<ul id="chat_log">
+<div id="chat_log">
     {% for message in chat_messages %}
-    <li class="message" data-time="{{ message.time|date:'Y-m-d H:i:sO' }}">{{ message.author.full_name }}: {{ message.text }}</li>
+    <div class="message" data-time="{{ message.time|date:'Y-m-d H:i:sO' }}">
+        <div class="message_user">{{ message.author.full_name }}:</div>
+        <div class="message_text"><p>{{ message.text }}</p></div>
+    </div>
     {% endfor %}
-</ul>
+</div>
 
-<input id="chat_message_input" type="text">
-<button id="send_btn" type="button">Отправить</button>
+<div class="message_input_form">
+    <input id="chat_message_input" type="text">
+    <button id="send_btn" type="button">Send</button>
+</div>
 
 {% endblock %}
 

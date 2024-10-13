@@ -37,15 +37,15 @@ def premium_chat(request, chat_id):
 
     if request.user.is_authenticated:
         if request.user.is_banned:
-            title = 'Ваш аккаунт заблокирован'
+            title = 'Your account is banned'
             return render(request, 'errors/some_error.html', {'title': title})
 
         if interlocutor.is_banned:
-            title = 'Вы не можете написать заблокированному аккаунту'
+            title = 'You cannot write to a banned account'
             return render(request, 'errors/some_error.html', {'title': title})
 
         if request.user not in chat.participants.all():
-            title = 'У вас нету доступа к этом чату'
+            title = 'You do not have access to this chat'
             return render(request, 'errors/some_error.html', {'title': title})
         return render(request, 'chat/premium_chat.html', {
             'chat_id': chat_id,
@@ -66,7 +66,7 @@ def admin_chat(request, chat_id):
 
     if request.user.is_authenticated:
         if request.user not in chat.participants.all():
-            title = 'У вас нету доступа к этом чату'
+            title = 'You do not have access to this chat'
             return render(request, 'errors/some_error.html', {'title': title})
         return render(request, 'chat/admin_chat.html', {
             'chat_id': chat_id,
@@ -83,10 +83,10 @@ def create_chat(request, username):
     ChatModel = AdminChat if user.is_staff else PremiumChat
     if not user.is_doctor: # Доктора не могут начинать чат
         if user.is_banned:
-            title = 'Ваш аккаунт заблокирован'
+            title = 'Your account is banned'
             return render(request, 'errors/some_error.html', {'title': title})
         if interlocutor.is_banned:
-            title = 'Вы не можете написать заблокированному аккаунту'
+            title = 'You cannot write to a banned account'
             return render(request, 'errors/some_error.html', {'title': title})
 
         try:
@@ -137,13 +137,13 @@ def ordered_call_view(request, pk):
         })
     else:
         if request.user.is_doctor:
-            title = 'Вы пропусти свое время'
-            body = 'На вас была поданна жалоба'
+            title = "You've missed your call"
+            body = 'A complaint has been filed against you'
 
             return render(request, 'errors/some_error.html', {'title': title, 'body':body})
         else:
-            title = 'Вы пропусти свое время'
-            body = 'С вашего счета была списана сумма за звонок'
+            title = "You've missed your call"
+            body = 'Your account has been debited for the call'
             return render(request, 'errors/some_error.html', {'title': title, 'body': body})
 
 @require_not_banned
@@ -185,8 +185,8 @@ def end_call(request, pk):
                 client.balance.balance -= total_price
                 site_balance.balance += call.get_percent(doctor, site_balance)
                 doctor.balance.balance += price
-                title = 'Успешный звонок!'
-                body = f'Звонок был успешно проведен. С вашего счета была снята сумма: {total_price} фантиков'
+                title = 'Call is successful'
+                body = f'The call was successfully completed. Amount has been withdrawn from your account: {total_price}$'
                 send_user_mail.delay(client.email, title, body)
                 site_balance.save(), client.balance.save(), doctor.balance.save(),
                 call.visiting_time.delete()
@@ -219,8 +219,8 @@ def end_call(request, pk):
                     site_balance.balance += percent
                     complaint.save()
                     call.visiting_time.delete()
-                title = 'На вас подана жалоба'
-                body = 'На вас подали жалобу. В ближайшее время вам напишет администрация чтобы решить проблему.'
+                title = 'A complaint has been filed against you'
+                body = 'A complaint has been filed against you. The administration will write to you shortly to resolve the problem.'
                 send_user_mail.delay(client.email, title, body)
                 return JsonResponse({'status':'success complaint'})
     else:
@@ -236,10 +236,10 @@ def cancel_ordered_call(request, pk):
                              .prefetch_related('participants'), pk=pk)
     if call.get_doctor() == request.user:
         if not call.is_active():
-            message_body = f'Врач { call.visiting_time.doctor } отменил назначеный звонок'
-            send_user_mail.delay(call.get_client().email, 'Отмена конференции', message_body)
+            message_body = f'Dr. { call.visiting_time.doctor } canceled the scheduled call'
+            send_user_mail.delay(call.get_client().email, 'Conference cancellation', message_body)
             call.visiting_time.delete()
         else:
-            messages.error(request, 'Звонок уже активен. Вы не можете его отменить')
+            messages.error(request, 'The call is already active, you cannot cancel the call.')
     return redirect('accounts:profile', request.user.username)
 

@@ -39,7 +39,7 @@ class RegisterClientView(CreateView):
         self.object = form.save()
         Balance.objects.create(user=self.object)
         login(self.request, self.object)
-        title = 'Добро пожаловать на наш сайт!'
+        title = 'Welcome!'
         body = ''
         send_user_mail.delay(self.object.email, title, body)
 
@@ -57,7 +57,7 @@ class RegisterDoctorUserView(CreateView):
         self.object.save()
         Balance.objects.create(user=self.object)
         login(self.request, self.object)
-        title = 'Добро пожаловать на наш сайт!'
+        title = 'Welcome'
         body = ''
         send_user_mail.delay(self.object.email, title, body)
 
@@ -105,7 +105,7 @@ def logout_user(request):
     return redirect('doctors:index')
 
 def doctor_success_register_message(request):
-    '''Сообщание для того чтобы подождать подтверждение сертификации'''
+    '''Сообщание для того чтобы подождать подтверждение сертификции'''
     return render(request,'accounts/doctor_success_register_message.html')
 
 def profile(request, username):
@@ -184,17 +184,17 @@ def ban_user_view(request, username):
             user.save()
             return redirect('accounts:profile', user.username)
         if user.is_superuser:
-            title = 'Вы не можете заблокировать суперпользователя'
+            title = "You can't ban superuser"
             return render(request, 'errors/some_error.html', {'title': title})
         user.is_banned = True
         user.save()
         return redirect('accounts:profile', user.username)
     elif request.user.is_staff:
         if user.is_staff:
-            title = 'Вы не можете заблокировать администратора'
+            title = "You can't ban admin"
             return render(request, 'errors/some_error.html', {'title': title})
         elif user.is_superuser:
-            title = 'Вы не можете заблокировать суперпользователя'
+            title = "You can't ban superuser:"
             return render(request, 'errors/some_error.html', {'title': title})
         user.is_banned = True
         user.save()
@@ -206,7 +206,7 @@ def unban_user_view(request, username):
     user = get_object_or_404(User, username=username)
     if request.user.is_superuser:
         if user.is_superuser:
-            title = 'Вы не можете разблокировать суперпользователя'
+            title = "You can't unban superuser"
             return render(request, 'errors/some_error.html', {'title': title})
         if user.is_staff:
             user.is_banned = False
@@ -218,10 +218,10 @@ def unban_user_view(request, username):
         return redirect('accounts:profile', user.username)
     elif request.user.is_staff:
         if user.is_superuser:
-            title = 'Вы не можете разблокировать суперпользователя'
+            title = "You can't unban superuser"
             return render(request, 'errors/some_error.html', {'title': title})
         if user.is_staff:
-            title = 'Вы не можете разблокировать администратора'
+            title = "You can't unban admin"
             return render(request, 'errors/some_error.html', {'title': title})
         user.is_banned = False
         user.save()

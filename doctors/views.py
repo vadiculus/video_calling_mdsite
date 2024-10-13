@@ -13,6 +13,7 @@ from accounts.models import User
 from django.http import HttpResponseRedirect, Http404
 from django.urls import reverse_lazy
 from .utils import require_not_superusers
+from chat.tasks import send_user_mail
 
 def index(request):
     queryset = Doctor.objects.select_related('user') \

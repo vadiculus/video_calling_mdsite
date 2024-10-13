@@ -4,29 +4,48 @@
 <head>
     <meta charset="UTF-8">
     <title>Title</title>
+    <link rel="stylesheet" href="/static/doctors/css/base.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,100..700;1,100..700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&family=Roboto+Mono:ital,wght@0,100..700;1,100..700&display=swap" rel="stylesheet">
     {% block meta %}
     {% endblock %}
 </head>
 <body>
-<a href="{% url 'doctors:index' %}">MEDICAL~Site</a>
-{% if user.is_authenticated %}
-<a href="{% url 'accounts:profile' user.username %}">{{ user.username }}</a>
-<a href="{% url 'accounts:logout' %}">logout</a>
-<span id="user_balance">Баланс: {{ user.balance.balance }}</span>
-<a href="{% url 'chat:ordered_call_list' %}">Ваши звонки</a>
-{% if user.is_staff %}
-<a href="{% url 'chat:admin_chat_list' %}">Чат</a><span id="new_admin_messages">{{ request.new_admin_messages_count }}</span>
-<a href="{% url 'admin:index' %}">Админ панель</a><br>
-{% else %}
-<a href="{% url 'chat:premium_chat_list' %}">Чат</a><span id="new_premium_messages">{{ request.new_premium_messages_count }}</span>
-<a href="{% url 'chat:admin_chat_list' %}">Администрация</a><span id="new_admin_messages">{{ request.new_admin_messages_count }}</span>
-{% endif %}
-{% else %}
-    <a href="{% url 'accounts:register_client' %}">Для клиентов</a>
-    <a href="{% url 'accounts:register_doctor' %}">Для враче</a>
-    <a href="{% url 'accounts:login' %}">Вход</a>
-{% endif %}
-<hr>
+<header>
+     <div class="header_inner">
+         <a href="{% url 'doctors:index' %}">MEDICAL~Site</a>
+
+         <div class="user_operation_container">
+             {% if user.is_authenticated %}
+             <a class="uoc_unit" href="{% url 'accounts:profile' user.username %}">{{ user.username }}</a>
+             <a class="uoc_unit" href="{% url 'accounts:logout' %}">logout</a>
+             <span id="user_balance">Balance:
+                 {% if user.balance.balance %}
+                 {{ user.balance.balance }}
+                 {% else %}
+                 0.00
+                 {% endif %}
+             </span>
+             <a class="uoc_unit" href="{% url 'chat:ordered_call_list' %}">Your calls</a>
+             {% if user.is_staff %}
+             <a class="uoc_unit" href="{% url 'chat:admin_chat_list' %}">Chat</a><span class="new_messages_indicator new_admin_messages">{{ request.new_admin_messages_count }}</span>
+             <a class="uoc_unit" href="{% url 'admin:index' %}">Admin panel</a><br>
+             {% else %}
+             <a class="uoc_unit" href="{% url 'chat:premium_chat_list' %}">Chat</a><div class="new_messages_indicator new_premium_messages"><span>{{ request.new_premium_messages_count }}</span></div>
+             <a class="uoc_unit" href="{% url 'chat:admin_chat_list' %}">Administration</a><span id="new_admin_messages"><div class="new_messages_indicator new_premium_messages"><span>{{ request.new_admin_messages_count }}</span></div></span>
+             {% endif %}
+             {% else %}
+                <a class="uoc_unit" href="{% url 'accounts:register_client' %}">Registration for clients</a>
+                <a class="uoc_unit" href="{% url 'accounts:register_doctor' %}">Registration for doctors</a>
+                <a class="uoc_unit" href="{% url 'accounts:login' %}">Log in</a>
+            {% endif %}
+         </div>
+     </div>
+</header>
 <div class="messages"> <!-- Сообщения во всплывающем окошке о кокомтом успешном действии или наоборот  -->
     <ul>
     {% for message in messages %}
@@ -36,16 +55,21 @@
 </div>
 <div id="incoming_call_window" style="display:none;
 border: 1px solid grey">
-    <h3>Входящий звонок</h3>
+    <h3>Incoming Call</h3>
     <div id="call__user_photo">
     </div>
     <span id="call__user_full_name"></span><br>
     <span id="call__time"></span>
-    <a id="call__call_start_btn">Начать звонок</a>
-    <button id="call__cansel_call_btn" type="button">Зайти позже</button>
+    <a id="call__call_start_btn">Start call</a>
+    <button id="call__cansel_call_btn" type="button">Later</button>
 </div>
-{% block content %}
-{% endblock %}
+
+<main>
+    <div class="main_inner">
+        {% block content %}
+        {% endblock %}
+    </div>
+</main>
 
 {% block scripts %}
 {% endblock %}

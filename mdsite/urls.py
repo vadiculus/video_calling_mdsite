@@ -12,4 +12,5 @@ urlpatterns = [
     path('calendars/', include('calendars.urls', namespace='calendars')),
     path('chat/', include('chat.urls', namespace='chat')),
     path('paynament/', include('paynament.urls', namespace='paynament'))
-] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT) \
+    + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

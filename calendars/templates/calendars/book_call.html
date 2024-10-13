@@ -2,13 +2,13 @@
 {% load static %}
 {% block content %}
 <br>
-Время: {{ visiting_time.time }}<br>
-Максимальная продолжительность звонка: {{ visiting_time.max_time }}<br>
-Стоимость звонка за полное время: {{ visiting_time.get_total_price }} фантиков<br>
-(Стоимость может варьироваться в зависимости от времени)
+Time: {{ visiting_time.time }}<br>
+Max call during: {{ visiting_time.max_time }}<br>
+Call cost for full time: {{ visiting_time.get_total_price }} фантиков<br>
+(Cost may vary depending on time)
 <form method="post">
     {% csrf_token %}
-    <button type="submit">Принять</button>
+    <button type="submit">Accept</button>
 </form>
 
 {% for error in errors %}

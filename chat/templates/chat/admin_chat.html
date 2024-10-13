@@ -3,20 +3,24 @@
 {% block content %}
 
 {% if interlocutor.is_superuser %}
-<h2>{{ interlocutor.full_name }} </h2><span>Администратор</span>
+<h2>{{ interlocutor.full_name }} </h2><span>Administrator</span>
 {% else %}
-<h2>{{ interlocutor.full_name }}</h2>
+<a href="{% url 'accounts:profile' interlocutor.username %}"><h2>{{ interlocutor.full_name }}</h2></a>
 {% endif %}
 
-
-<ul id="chat_log">
+<div id="chat_log">
     {% for message in chat_messages %}
-    <li class="message" data-time="{{ message.time|date:'Y-m-d H:i:sO' }}">{{ message.author.full_name }}: {{ message.text }}</li>
+    <div class="message" data-time="{{ message.time|date:'Y-m-d H:i:sO' }}">
+        <div class="message_user">{{ message.author.full_name }}:</div>
+        <div class="message_text"><p>{{ message.text }}</p></div>
+    </div>
     {% endfor %}
-</ul>
+</div>
 
-<input id="chat_message_input" type="text">
-<button id="send_btn" type="button">Отправить</button>
+<div class="message_input_form">
+    <input id="chat_message_input" type="text">
+    <button id="send_btn" type="button">Send</button>
+</div>
 
 {% endblock %}
 

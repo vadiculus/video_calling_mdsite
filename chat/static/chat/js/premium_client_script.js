@@ -3,6 +3,7 @@ let clientSocket = new WebSocket('ws://'+window.location.host+'/ws/premium_chat/
 const messageInput = document.querySelector('#chat_message_input');
 const send_btn = document.querySelector('#send_btn');
 const chat_log = document.querySelector('#chat_log');
+chat_log.scrollTo(0, chat_log.scrollHeight);
 
 clientSocket.onopen = onOpen;
 clientSocket.onclose = onClose;
@@ -22,16 +23,18 @@ send_btn.addEventListener('click', ()=>{
 
 function onMessage(event){
     message_data = JSON.parse(event.data);
-    let message_item = document.createElement('li');
-    message_item.textContent = `${message_data.full_name}: ${message_data.message}`;
+    let message_item = document.createElement('div');
+    message_item.classList.add('message');
+    message_item.innerHTML = `<div class="message_user">${message_data.full_name}:</div><div class="message_text"><p>${message_data.message}</p></div>`;
     let time = new Date(message_data.time);
     let hour = time.getHours() < 10 ? '0' + time.getHours() : time.getHours();
     let minute = time.getMinutes() < 10 ? '0' + time.getMinutes() : time.getMinutes();
     let time_element = document.createElement('span');
+    time_element.classList.add('message_time');
     time_element.innerHTML = `${hour}:${minute}`;
-    message_item.append(document.createElement('br'));
     message_item.append(time_element);
     chat_log.append(message_item);
+    chat_log.scrollTo(0, chat_log.scrollHeight);
 }
 
 function onOpen(){

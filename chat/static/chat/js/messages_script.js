@@ -52,7 +52,7 @@ function onMessage(event){
             let time = new Date(message.time); 
             let hour = time.getHours() < 10 ? '0' + time.getHours() : time.getHours();
             let minute = time.getMinutes() < 10 ? '0' + time.getMinutes() : time.getMinutes();
-            call_time.innerHTML = `Забронированый звонок на ${hour}:${minute}` 
+            call_time.innerHTML = `Call time: ${hour}:${minute}`
             user_full_name.innerHTML = message.full_name;
             incoming_call_window.style.display = 'block';
             break;

@@ -104,7 +104,8 @@ class CreateVisitingTimeView(CreateView):
                                                        minutes=self.object.max_time)) |
                                                  Q(time_end__gt=self.object.time ,
                                                    time_end__lte=self.object.time + datetime.timedelta(
-                                                       minutes=self.object.max_time)))
+                                                       minutes=self.object.max_time)) &
+                                               Q(ordered_call__is_ended=False))
 
         if not visiting_times:
             self.object.doctor = self.request.user.doctor
@@ -112,7 +113,7 @@ class CreateVisitingTimeView(CreateView):
             self.object.save()
             return HttpResponseRedirect(self.get_success_url())
         else:
-            error_text = 'У вас уже есть звонки на это назначенное время'
+            error_text = 'You already have calls for this scheduled time'
             return render(self.request, 'calendars/add_visiting_time.html', {'form':form,
                                                                              'errors':[error_text]})
 
@@ -127,8 +128,8 @@ def delete_visiting_time(request, pk):
             if not visiting_time.is_booked:
                 visiting_time.delete()
             else:
-                message_body = f'Врач {visiting_time.doctor.user.full_name} отменил назначеный звонок'
-                send_user_mail.delay(visiting_time.ordered_call.get_client().email, 'Отмена конференции', message_body)
+                message_body = f'Dr. {visiting_time.doctor.user.full_name} canceled the scheduled call'
+                send_user_mail.delay(visiting_time.ordered_call.get_client().email, 'Conference cancellation', message_body)
                 visiting_time.delete()
             return redirect('accounts:profile', request.user.username)
         else:

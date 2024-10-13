@@ -18,20 +18,20 @@
         height: 100px">
 </div>
 {% endif %}
-<span>Имя: {{ page_user.full_name }}</span><br>
-<span>Стоимость услуг за час: {{ page_user.doctor.service_cost}}</span><br>
+<span>Name: {{ page_user.full_name }}</span><br>
+<span>Cost of services: {{ page_user.doctor.service_cost}}</span><br>
 
 {% if user == page_user or user.is_superuser %}
-<span>Логин: {{ page_user.username }}</span>
+<span>username: {{ page_user.username }}</span><br>
 {% endif %}
 
 <span>BIO: {{ page_user.doctor.bio }}</span><br><br>
 {% if user.is_staff %}
-<span>Количество жалоб: {{ page_user.accused_standard_complaints.count }}</span><br>
+<span>Complaints count: {{ page_user.accused_standard_complaints.count }}</span><br>
 {% endif %}
 
 {% if page_user.doctor.is_confirmed %}
-<span>Квалификации: </span>
+<span>Qualifications: </span>
 <ul>
     {% for qualification in page_user.doctor.qualifications.all %}
     <li>{{ qualification.name }}</li>
@@ -39,33 +39,33 @@
 </ul>
 {% endif %}
 {% if user == page_user %}
-<a href="{% url 'accounts:update_doctor_profile' %}">Изменить профиль</a>
-<a href="{% url 'accounts:add_certification_confirmation' %}">Добавить квалификацию</a>
-<a href="{% url 'accounts:change_password' %}">Изменить пароль</a><br>
+<a href="{% url 'accounts:update_doctor_profile' %}">Change Profile</a>
+<a href="{% url 'accounts:add_certification_confirmation' %}">Add Qualification</a>
+<a href="{% url 'accounts:change_password' %}">Change Password</a><br>
 {% elif user.is_staff %}
-<a href="{% url 'accounts:ban' page_user.username %}">Заблокировать</a><br>
+<a href="{% url 'accounts:ban' page_user.username %}">Block</a><br>
 {% endif %}
 
 {% if user.is_staff %}
-<a href="{% url 'moderation:admin_email' page_user.username %}">Написать email</a><br>
+<a href="{% url 'moderation:admin_email' page_user.username %}">Send email</a><br>
 {% endif %}
 
 {% if page_user.doctor.rating %}
-<span>Рейтинг: {{ page_user.doctor.rating }}</span><br> <br>
+<span>Rating: {{ page_user.doctor.rating }}</span><br> <br>
 {% else %}
-<span>Никто не оценивал</span><br><br>
+<span>No rating</span><br><br>
 {% endif %}
 {% if user != page_user %}
-<a href="{% url 'moderation:create_complaint' page_user.username %}">Подать жалобу</a><br>
+<a href="{% url 'moderation:create_complaint' page_user.username %}">File a complaint</a><br>
 {% endif %}
 
 
 {% if user.is_authenticated %}
 {% if not user.is_doctor  %}
 {% if user.client.is_premium or user.is_staff %}
-<a href="{% url 'chat:create_chat' page_user.username %}">Написать</a><br>
+<a href="{% url 'chat:create_chat' page_user.username %}">Send message</a><br>
 {% else %}
-<p>Чтобы написать доктору вы должны <a href="{% url 'accounts:buy_premium_account' %}">купить пермиум аккаунт</a></p>
+<p>To write to a doctor you need a <a href="{% url 'accounts:buy_premium_account' %}">premium account</a></p>
 {% endif %}
 {% endif %}
 {% endif %}
@@ -75,18 +75,18 @@
 
 </div><br>
 {% else %}
-<h3>Нету времени посещения</h3>
+<h3>No visit time</h3>
 {% endif %}
 
 {% if page_user == user %}
-<a href="{% url 'calendars:create_visiting_time' %}">Добавить время для визита</a><br>
+<a href="{% url 'calendars:create_visiting_time' %}">Add visit time</a><br>
 {% endif %}
 
-{% if page_user != user and not user.is_staff and not user.is_banned and user.is_authenticate %}
+{% if page_user != user and not user.is_staff and not user.is_banned and user.is_authenticated %}
 <form action="{% url 'doctors:create_review' page_user.username %}" method="post">
     {% csrf_token %}
     {{ review_form.as_p }}
-    <button type="submit">Отправить</button>
+    <button type="submit">Send</button>
 </form>
 {% endif %}
 
@@ -95,9 +95,9 @@
     {% if review.client.user.full_name  %}
     <span>{{ review.client.user.full_name }}</span>
     {% else %}
-    Анонимный
+    Anonym
     {% endif %}<br>
-    <span>Оценка: {{ review.rating }}</span>
+    <span>Rating: {{ review.rating }}</span>
     <p>{{ review.review }}</p>
 </div>
 {% endfor %}

@@ -10,9 +10,9 @@
         height: 100px">
 </div>
 {% endif %}
-<span>Имя: {{ page_user.full_name }}</span><br>
+<span>Name: {{ page_user.full_name }}</span><br>
 
-<h2>У вас нету профиля доктора</h2>
-<p>Создайте профиль по <a href="{% url 'accounts:certification_confirmation' %}">этой ссылке</a></p>
+<h2>You have not doctor profile</h2>
+<p>Crate <a href="{% url 'accounts:certification_confirmation' %}">here</a></p>
 
 {% endblock %}

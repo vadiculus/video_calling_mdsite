@@ -6,11 +6,11 @@ from decimal import Decimal
 from paynament.models import SiteBalance
 
 class VisitingTime(models.Model):
-    doctor = models.ForeignKey(Doctor, related_name='visiting_time', on_delete=models.CASCADE, verbose_name='Доктор')
+    doctor = models.ForeignKey(Doctor, related_name='visiting_time', on_delete=models.CASCADE, verbose_name='Doctor')
     time = models.DateTimeField()
-    is_booked = models.BooleanField(default=False, blank=True, verbose_name='Забронировано')
+    is_booked = models.BooleanField(default=False, blank=True, verbose_name='Booked')
     max_time = models.IntegerField(default=60, validators=[MaxValueValidator(240), MinValueValidator(20)])
-    time_end = models.DateTimeField(null=True, blank=True, verbose_name='Конечное время')
+    time_end = models.DateTimeField(null=True, blank=True, verbose_name='Time end')
 
     def get_price(self):
         price = round((self.max_time / 60 * 100) * (float(self.doctor.service_cost) / 100))

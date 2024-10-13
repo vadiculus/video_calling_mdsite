@@ -1,0 +1,8 @@
+html, body {
+    margin: 0;
+}
+
+.header_inner{
+    padding: 20px;
+    justify-content: space-between;
+}

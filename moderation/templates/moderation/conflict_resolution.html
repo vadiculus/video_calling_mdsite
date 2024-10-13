@@ -2,11 +2,11 @@
 {% load static %}
 {% block content %}
 
-<span>Сообщение пользователю {{ not_right_user.full_name }}</span>
+<span>Message to {{ not_right_user.full_name }}</span>
 <form method="post" enctype="multipart/form-data">
     {% csrf_token %}
     {{ form.as_p }}
-    <button type="submit">Отправить</button>
+    <button type="submit">Send</button>
 </form>
 
 

@@ -21,11 +21,11 @@
 <span>{{ page_user.full_name }}</span><br>
 
 {% if user == page_user or user.is_superuser %}
-<span>Логин: {{ page_user.username }}</span><br>
+<span>username: {{ page_user.username }}</span><br>
 {% endif %}
 
 {% if user.is_staff and page_user.is_staff %}
-<span>Администратор</span><br>
+<span>Admin</span><br>
 {% endif %}
 
 {% if user.is_staff %}
@@ -33,29 +33,29 @@
 {% endif %}
 
 {% if user.is_superuser and not page_user.is_staff %}
-<a href="{% url 'moderation:make_user_admin' page_user.username %}">Сделать администратором</a><br>
-<a href="{% url 'moderation:admin_email' page_user.username %}">Написать email</a><br>
+<a href="{% url 'moderation:make_user_admin' page_user.username %}">Make Admin</a><br>
+<a href="{% url 'moderation:admin_email' page_user.username %}">Send email</a><br>
 {% endif %}
 
 {% if user.is_superuser and page_user.is_staff %}
-<a href="{% url 'moderation:remove_admin_status' page_user.username %}">Убрать статус администратора</a><br>
+<a href="{% url 'moderation:remove_admin_status' page_user.username %}">Revoke Admin Privileges</a><br>
 {% endif %}
 
 {% if page_user != user %}
-<a href="{% url 'moderation:create_complaint' page_user.username %}">Подать жалобу</a><br>
+<a href="{% url 'moderation:create_complaint' page_user.username %}">File a complaint</a><br>
 {% endif %}
 
 {% if user == page_user %}
-<a href="{% url 'paynament:top_up_balance' %}">Пополнить баланс</a>
-<a href="{% url 'accounts:update_client_profile' %}">Изменить профиль</a>
-<a href="{% url 'accounts:change_password' %}">Изменить пароль</a><br>
+<a href="{% url 'paynament:top_up_balance' %}">Top Up Balance</a><br>
+<a href="{% url 'accounts:update_client_profile' %}">Edit Profile</a><br>
+<a href="{% url 'accounts:change_password' %}">Change password</a><br>
 {% elif user.is_superuser %}
-<a href="{% url 'chat:create_chat' page_user.username %}">Написать</a><br>
-<a href="{% url 'accounts:ban' page_user.username %}">Заблокировать</a><br>
+<a href="{% url 'chat:create_chat' page_user.username %}">Send message</a><br>
+<a href="{% url 'accounts:ban' page_user.username %}">Block user</a><br>
 {% endif %}
 
-{% if not page_user.client.is_premium %}
-<a href="{% url 'accounts:buy_premium_account' %}">Купить премиум аккаунт</a>
+{% if not page_user.client.is_premium and not page_user.is_staff %}
+<a href="{% url 'accounts:buy_premium_account' %}">Buy Premium</a><br>
 {% endif %}
 
 

@@ -8,22 +8,22 @@ from django.db import transaction
 
 
 class Qualification(models.Model):
-    name = models.CharField(max_length=100, verbose_name='Название')
+    name = models.CharField(max_length=100, verbose_name='Name')
 
     def __str__(self):
         return self.name
 
     class Meta:
-        verbose_name = 'Квалификация'
-        verbose_name_plural = 'Квалификации'
+        verbose_name = 'Qualification'
+        verbose_name_plural = 'Qualifications'
 
 class Doctor(models.Model):
-    user = models.OneToOneField(User, related_name='doctor', on_delete=models.CASCADE, verbose_name='Пользователь')
-    is_confirmed = models.BooleanField(default=False, blank=True, verbose_name='Подтвержден')
-    qualifications = models.ManyToManyField(Qualification, related_name='doctors', verbose_name='Квалификации')
-    bio = models.TextField(blank=True, null=True,verbose_name='Биография')
-    service_cost = models.PositiveIntegerField(verbose_name='Стоимость услуг')
-    rating = models.FloatField(null=True,blank=True,validators=[MaxValueValidator(5)],verbose_name='Рейтинг')
+    user = models.OneToOneField(User, related_name='doctor', on_delete=models.CASCADE, verbose_name='User')
+    is_confirmed = models.BooleanField(default=False, blank=True, verbose_name='Сonfirmed')
+    qualifications = models.ManyToManyField(Qualification, related_name='doctors', verbose_name='Qualifications')
+    bio = models.TextField(blank=True, null=True,verbose_name='Biography')
+    service_cost = models.PositiveIntegerField(verbose_name='Cost of services')
+    rating = models.FloatField(null=True,blank=True,validators=[MaxValueValidator(5)],verbose_name='Rating')
 
     def __str__(self):
         return self.user.full_name
@@ -32,16 +32,16 @@ class Doctor(models.Model):
         return self.user.username
 
     class Meta:
-        verbose_name = 'Доктор'
-        verbose_name_plural = 'Доктора'
+        verbose_name = 'Doctor'
+        verbose_name_plural = 'Doctors'
 
 class Review(models.Model):
     rating = models.PositiveIntegerField(validators=[MaxValueValidator(5), MinValueValidator(1)],
-                                         verbose_name='Оценка')
+                                         verbose_name='Rating')
 
-    client = models.ForeignKey(Client, null=True, on_delete=models.SET_NULL, verbose_name='Клиент')
-    doctor = models.ForeignKey(Doctor, on_delete=models.CASCADE, related_name='reviews', verbose_name='Доктор')
-    review = models.TextField(null=True, blank=True, verbose_name='Отзыв')
+    client = models.ForeignKey(Client, null=True, on_delete=models.SET_NULL, verbose_name='Client')
+    doctor = models.ForeignKey(Doctor, on_delete=models.CASCADE, related_name='reviews', verbose_name='Doctor')
+    review = models.TextField(null=True, blank=True, verbose_name='Review')
 
     def save(self, *args, **kwargs):
         with transaction.atomic():
@@ -57,7 +57,7 @@ class Review(models.Model):
             super().save(*args, **kwargs)
 
     class Meta:
-        verbose_name = 'Отзыв'
-        verbose_name_plural = 'Отзывы'
+        verbose_name = 'Review'
+        verbose_name_plural = 'Reviews'
         unique_together = ('client', 'doctor')
 
