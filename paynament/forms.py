@@ -2,7 +2,7 @@ from django import forms
 from .models import SiteBalance
 
 class BalanceReplenishmentForm(forms.Form):
-    amount = forms.IntegerField(label='Сумма')
+    amount = forms.IntegerField(label='Sum')
     class Meta:
         fields = ['amount']
 

@@ -20,7 +20,7 @@ class RegisterClientForm(UserCreationForm):
         fields = ['username','full_name', 'email', 'photo', 'password1', 'password2']
 
 class RegisterDoctorForm(forms.ModelForm):
-    certification_photos = forms.ImageField(help_text='От 1 до 5 фото',
+    certification_photos = forms.ImageField(help_text='Max 5 photos',
         label='Photo certification',
         widget=forms.FileInput(attrs={'multiple': True}))
         
@@ -28,7 +28,7 @@ class RegisterDoctorForm(forms.ModelForm):
         model = Doctor
         fields = ['qualifications', 'bio', 'service_cost']
         widgets = {
-            'qualifications': forms.CheckboxSelectMultiple(attrs={'help_text':'От 1 до 5 фото'})
+            'qualifications': forms.CheckboxSelectMultiple(attrs={'help_text':'Max 5 photos'})
         }
 class UpdateDoctorProfileForm(forms.ModelForm):
     photo = forms.ImageField(label='Photo',required=False)

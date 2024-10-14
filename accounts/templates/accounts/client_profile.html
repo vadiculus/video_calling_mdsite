@@ -29,7 +29,7 @@
 {% endif %}
 
 {% if user.is_staff %}
-<span>Количество жалоб: {{ page_user.accused_standard_complaints.count }}</span><br>
+<span>Complaints count: {{ page_user.accused_standard_complaints.count }}</span><br>
 {% endif %}
 
 {% if user.is_superuser and not page_user.is_staff %}

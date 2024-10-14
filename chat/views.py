@@ -101,10 +101,10 @@ def create_chat(request, username):
         if user.client.is_premium:
             return redirect(f'chat:premium_chat', chat.id)
 
-        title = 'Вы не имеете премиум аккаунта'
-        body = 'Вы можете купить премиум аккаунт на своей странице профиля'
+        title = "You have not premium"
+        body = 'You can buy premium on your user page'
         return render(request, 'errors/some_error.html', {'title':title, 'body':body})
-    title = 'Доктора не могут создавать чаты'
+    title = "Doctor can't create a chat"
     return render(request, 'errors/some_error.html', {'title':title})
 
 @require_not_banned

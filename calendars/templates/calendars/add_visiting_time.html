@@ -16,12 +16,16 @@
     {{ form.as_p }}
     <span>Time in format (01.01.2020 12:00)</span><br>
     <button type="submit">Create</button>
+    {% if calendar %}
+    WFIOjwaifuhawifuawf
+    {% endif %}
 </form>
 
 {% endblock %}
 
 {% block scripts %}
 {% if calendar %}
+awfafawfafw
 {{ calendar|json_script:"calendar_script" }}
 {% endif %}
 <script src="{% static 'calendars/js/calendars_script.js' %}"></script>

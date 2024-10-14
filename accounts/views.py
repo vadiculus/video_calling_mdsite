@@ -28,6 +28,7 @@ import datetime
 from django.conf import settings
 from chat.tasks import send_user_mail
 from doctors.forms import ReviewForm
+from django.contrib import messages
 
 class RegisterClientView(CreateView):
     '''Регистрация клиента'''
@@ -234,8 +235,13 @@ def unban_user_view(request, username):
 def buy_premium_account(request):
     user = request.user
     if request.method == 'POST':
-        user.client.is_premium = True
-        user.client.save()
-        return redirect('accounts:profile', username=request.user.username)
+        if user.balance.balance >= 50:
+            user.balance.balance -= 50
+            user.balance.save()
+            user.client.is_premium = True
+            user.client.save()
+            return redirect('accounts:profile', username=request.user.username)
+        else:
+            messages.error(request, 'You have no money')
     return render(request, 'accounts/buy_premium_account.html')
 

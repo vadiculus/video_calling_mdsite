@@ -94,12 +94,12 @@ class AddCertificationConfirmationView(CreateView):
         return HttpResponseRedirect(self.get_success_url())
 
 def complaint_info(request, status):
-    body = 'В ближайшее время вам напишет администрация сайта чтобы решить вашу проблему'
+    body = 'The site administration will write to you shortly to solve your problem.'
     if status == 'accused':
-        title = 'На вас была подана жалоба'
+        title = 'A complaint has been filed against you'
         return render(request, 'errors/text_page.html', {'title': title, 'body': body})
     elif status == 'initiator':
-        title = 'Жалоба была успешно подана'
+        title = 'The complaint was successfully submitted'
         return render(request, 'errors/text_page.html', {'title': title, 'body':body})
     else:
         pass
@@ -123,7 +123,7 @@ def conflict_resolution(request, pk, res_type):
     if request.method == 'POST':
         form = ConflictCauseForm(request.POST)
         if form.is_valid():
-            title = 'Решение проблемы'
+            title = 'Problem Resolution'
             if res_type == 'transfer-money':
                 with transaction.atomic():
                     client.balance.balance -= complaint.price
@@ -202,7 +202,7 @@ class CreateStandardComplaint(CreateView):
         self.object, _ = StandardComplaint.objects.update_or_create(initiator=self.request.user,
                                                                     accused=get_object_or_404(User, username=self.kwargs.get('username')),
                                                                     cause=form.cleaned_data['cause'])
-        messages.success(self.request, 'Жалоба была успешно поданна')
+        messages.success(self.request, 'The complaint was successfully filed')
         return HttpResponseRedirect(self.get_success_url())
 
 def create_standard_complaint(request, username):

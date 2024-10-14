@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import CertificationConfirmation, Complaint
+from .models import CertificationConfirmation, Complaint, StandardComplaint
 from django.utils.safestring import mark_safe
 from django.db import models
 from django.conf import settings
@@ -24,14 +24,7 @@ class CertificationConfirmationAdmin(admin.ModelAdmin):
     def has_change_permission(self, request, obj=None):
         return False
 
-    # def doctor_model(self, obj):
-    #     doctor = obj.doctor
-    #     qualifications = ''
-    #     for qualification in doctor.qualification.all():
-    #         qualifications += f'{qualification.name}, '
-    #     return mark_safe(f'Имя: <b>{doctor.user.full_name}</b><br>Квалификации: {qualifications}')
-
-    photos.short_description = 'Фото сертифифкатов'
+    photos.short_description = 'Photo certificates'
 
 
 class ComplaintAdmin(admin.ModelAdmin):
@@ -43,8 +36,15 @@ class ComplaintAdmin(admin.ModelAdmin):
     def has_add_permission(self, request):
         return False
 
+class StandardComplaintAdmin(admin.ModelAdmin):
+    fields = ['initiator', 'accused', 'cause']
+    def has_change_permission(self, request, obj=None):
+        return False
 
+    def has_add_permission(self, request):
+        return False
 
 admin.site.register(CertificationConfirmation, CertificationConfirmationAdmin)
 admin.site.register(Complaint, ComplaintAdmin)
+admin.site.register(StandardComplaint, StandardComplaintAdmin)
 

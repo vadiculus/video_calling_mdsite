@@ -55,7 +55,7 @@
 {% else %}
 <span>No rating</span><br><br>
 {% endif %}
-{% if user != page_user %}
+{% if user != page_user and not user.is_staff %}
 <a href="{% url 'moderation:create_complaint' page_user.username %}">File a complaint</a><br>
 {% endif %}
 
@@ -70,6 +70,7 @@
 {% endif %}
 {% endif %}
 
+{% if page_user.doctor.is_confirmed %}
 {% if calendar %}
 <div id="calendar_container">
 
@@ -80,6 +81,9 @@
 
 {% if page_user == user %}
 <a href="{% url 'calendars:create_visiting_time' %}">Add visit time</a><br>
+{% endif %}
+{% else %}
+<h3>Not confirmed yet</h3>
 {% endif %}
 
 {% if page_user != user and not user.is_staff and not user.is_banned and user.is_authenticated %}

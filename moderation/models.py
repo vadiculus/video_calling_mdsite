@@ -47,3 +47,7 @@ class StandardComplaint(models.Model):
     initiator = models.ForeignKey(User, related_name='initiator_standard_complaints', null=True, on_delete=models.SET_NULL,
                                   verbose_name='Initiator')
     cause = models.CharField(max_length=150, verbose_name='Reason')
+
+    class Meta:
+        verbose_name = 'Standard Complaint'
+        verbose_name_plural = 'Standard Complaints'

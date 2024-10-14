@@ -35,8 +35,8 @@
              <a class="uoc_unit" href="{% url 'chat:admin_chat_list' %}">Chat</a><span class="new_messages_indicator new_admin_messages">{{ request.new_admin_messages_count }}</span>
              <a class="uoc_unit" href="{% url 'admin:index' %}">Admin panel</a><br>
              {% else %}
-             <a class="uoc_unit" href="{% url 'chat:premium_chat_list' %}">Chat</a><div class="new_messages_indicator new_premium_messages"><span>{{ request.new_premium_messages_count }}</span></div>
-             <a class="uoc_unit" href="{% url 'chat:admin_chat_list' %}">Administration</a><span id="new_admin_messages"><div class="new_messages_indicator new_premium_messages"><span>{{ request.new_admin_messages_count }}</span></div></span>
+             <a class="uoc_unit" href="{% url 'chat:premium_chat_list' %}">Chat</a><div class="new_messages_indicator new_premium_messages"><span id="new_premium_messages">{{ request.new_premium_messages_count }}</span></div>
+             <a class="uoc_unit" href="{% url 'chat:admin_chat_list' %}">Administration</a><div class="new_messages_indicator new_premium_messages"><span id="new_admin_messages">{{ request.new_admin_messages_count }}</span></div>
              {% endif %}
              {% else %}
                 <a class="uoc_unit" href="{% url 'accounts:register_client' %}">Registration for clients</a>

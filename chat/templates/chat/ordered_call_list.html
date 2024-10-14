@@ -10,15 +10,15 @@
     <span>{{ call|get_interlocutor:user }}</span><br>
     <span class="call_time" data-date="{{ call.visiting_time.time|date:'Y-m-d H:i:sO' }}">{{ call.visiting_time.time }}</span>
     {% if call.is_active %}
-    <a href="{% url 'chat:ordered_call' call.pk %}">Начать звонок</a><br>
+    <a href="{% url 'chat:ordered_call' call.pk %}">Start call</a><br>
     {% endif %}
     {% if user.is_doctor %}
-    <a href="{% url 'chat:cansel_call' call.pk %}">Отменить звонок</a>
+    <a href="{% url 'chat:cansel_call' call.pk %}">Cancel call</a>
     {% endif %}
 </div>
 {% endfor %}
 {% else %}
-<h3>У вас пока что нету забронированых звонков</h3>
+<h3>You have not booked calls</h3>
 {% endif %}
 
 {% endblock %}
